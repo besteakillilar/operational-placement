@@ -1,0 +1,448 @@
+// ==================== GOOGLE APPS SCRIPT - GÖREV DAĞILIMI ====================
+// Bu dosyayı Google Apps Script'e kopyalayın ve Web App olarak deploy edin
+
+const SPREADSHEET_ID = '1bPlSz-4hF1wL0MR6fqeqxOCZfVLvjoTBLyodzAFugGU'; // Kendi Spreadsheet ID'nizi girin
+
+// Sheet isimleri
+const SHEETS = {
+  PERSONNEL: 'Personeller',
+  LEAVES: 'Izinler',
+  DEPARTMENTS: 'Departmanlar',
+  TASKS: 'Gorevler',
+  LEAVE_TYPES: 'IzinTurleri'
+};
+
+// CORS için gerekli
+function doGet(e) {
+  return handleRequest(e);
+}
+
+function doPost(e) {
+  return handleRequest(e);
+}
+
+function handleRequest(e) {
+  // e veya e.parameter undefined olabilir, kontrol et
+  if (!e || !e.parameter) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ success: false, error: 'Geçersiz istek parametreleri' }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  const action = e.parameter.action;
+  let result;
+  
+  try {
+    switch(action) {
+      // GET işlemleri
+      case 'getPersonnel':
+        result = getPersonnel();
+        break;
+      case 'getLeaves':
+        result = getLeaves();
+        break;
+      case 'getDepartments':
+        result = getDepartments();
+        break;
+      case 'getTasks':
+        result = getTasks();
+        break;
+      case 'getLeaveTypes':
+        result = getLeaveTypes();
+        break;
+      case 'getAllData':
+        result = getAllData();
+        break;
+      
+      // POST işlemleri
+      case 'addPersonnel':
+        result = addPersonnel(JSON.parse(e.parameter.data));
+        break;
+      case 'updatePersonnel':
+        result = updatePersonnel(JSON.parse(e.parameter.data));
+        break;
+      case 'deletePersonnel':
+        result = deletePersonnel(e.parameter.id);
+        break;
+      case 'addLeave':
+        result = addLeave(JSON.parse(e.parameter.data));
+        break;
+      case 'updateLeave':
+        result = updateLeave(JSON.parse(e.parameter.data));
+        break;
+      case 'deleteLeave':
+        result = deleteLeave(e.parameter.id);
+        break;
+      
+      default:
+        result = { success: false, error: 'Geçersiz işlem: ' + action };
+    }
+  } catch(error) {
+    result = { success: false, error: error.toString() };
+  }
+  
+  return ContentService
+    .createTextOutput(JSON.stringify(result))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+// ==================== GET FONKSİYONLARI ====================
+
+function getSpreadsheet() {
+  return SpreadsheetApp.openById(SPREADSHEET_ID);
+}
+
+function getSheetData(sheetName) {
+  const ss = getSpreadsheet();
+  let sheet = ss.getSheetByName(sheetName);
+  
+  if (!sheet) {
+    sheet = ss.insertSheet(sheetName);
+    // Başlıkları ekle
+    if (sheetName === SHEETS.PERSONNEL) {
+      sheet.appendRow(['ID', 'Ad Soyad', 'Departman', 'Görev', 'Telefon', 'İşe Başlama', 'Oluşturma Tarihi']);
+    } else if (sheetName === SHEETS.LEAVES) {
+      sheet.appendRow(['ID', 'Personel ID', 'Personel Adı', 'Departman', 'İzin Türü', 'Başlangıç', 'Bitiş', 'Açıklama', 'Oluşturma Tarihi']);
+    } else if (sheetName === SHEETS.DEPARTMENTS) {
+      sheet.appendRow(['Departman']);
+      sheet.appendRow(['Paketleme']);
+      sheet.appendRow(['Balon Tedarik']);
+    } else if (sheetName === SHEETS.TASKS) {
+      sheet.appendRow(['Departman', 'Görev']);
+      // Paketleme görevleri
+      sheet.appendRow(['Paketleme', 'Sorumlu']);
+      sheet.appendRow(['Paketleme', 'Kalite Kontrol']);
+      sheet.appendRow(['Paketleme', 'Numune']);
+      sheet.appendRow(['Paketleme', 'TR Reklamlık/Paketleme']);
+      sheet.appendRow(['Paketleme', 'Paketleme Çıkış']);
+      sheet.appendRow(['Paketleme', 'Paketleme']);
+      sheet.appendRow(['Paketleme', 'Paketleme Tartım']);
+      // Balon Tedarik görevleri
+      sheet.appendRow(['Balon Tedarik', 'Stok/Sevkiyat/Tedarik']);
+      sheet.appendRow(['Balon Tedarik', 'Tedarik']);
+      sheet.appendRow(['Balon Tedarik', 'Sevkiyat Hazırlık']);
+      sheet.appendRow(['Balon Tedarik', 'Dolum']);
+    } else if (sheetName === SHEETS.LEAVE_TYPES) {
+      sheet.appendRow(['İzin Türü']);
+      sheet.appendRow(['Geç Gelecek']);
+      sheet.appendRow(['Saatlik İzinli']);
+      sheet.appendRow(['Günlük İzinli']);
+      sheet.appendRow(['Yıllık İzinli']);
+      sheet.appendRow(['Mazeretsiz Gelmedi']);
+      sheet.appendRow(['Doğum İzni']);
+      sheet.appendRow(['Raporlu']);
+      sheet.appendRow(['Erken Çıktı']);
+    }
+  }
+  
+  const data = sheet.getDataRange().getValues();
+  return data;
+}
+
+function getPersonnel() {
+  const data = getSheetData(SHEETS.PERSONNEL);
+  if (data.length <= 1) return { success: true, data: [] };
+  
+  const headers = data[0];
+  const personnel = data.slice(1).map(row => ({
+    id: row[0],
+    name: row[1],
+    department: row[2],
+    task: row[3],
+    phone: row[4],
+    startDate: row[5] ? Utilities.formatDate(new Date(row[5]), 'Europe/Istanbul', 'yyyy-MM-dd') : '',
+    createdAt: row[6]
+  })).filter(p => p.id); // Boş satırları filtrele
+  
+  return { success: true, data: personnel };
+}
+
+function getLeaves() {
+  const data = getSheetData(SHEETS.LEAVES);
+  if (data.length <= 1) return { success: true, data: [] };
+  
+  const leaves = data.slice(1).map(row => ({
+    id: row[0],
+    personnelId: row[1],
+    personnelName: row[2],
+    department: row[3],
+    type: row[4],
+    startDate: row[5] ? Utilities.formatDate(new Date(row[5]), 'Europe/Istanbul', 'yyyy-MM-dd') : '',
+    endDate: row[6] ? Utilities.formatDate(new Date(row[6]), 'Europe/Istanbul', 'yyyy-MM-dd') : '',
+    note: row[7],
+    createdAt: row[8]
+  })).filter(l => l.id);
+  
+  return { success: true, data: leaves };
+}
+
+function getDepartments() {
+  const data = getSheetData(SHEETS.DEPARTMENTS);
+  if (data.length <= 1) return { success: true, data: [] };
+  
+  const departments = data.slice(1).map(row => row[0]).filter(d => d);
+  return { success: true, data: departments };
+}
+
+function getTasks() {
+  const data = getSheetData(SHEETS.TASKS);
+  if (data.length <= 1) return { success: true, data: [] };
+  
+  const tasks = data.slice(1).map(row => ({
+    department: row[0],
+    task: row[1]
+  })).filter(t => t.department && t.task);
+  
+  return { success: true, data: tasks };
+}
+
+function getLeaveTypes() {
+  const data = getSheetData(SHEETS.LEAVE_TYPES);
+  if (data.length <= 1) return { success: true, data: [] };
+  
+  const types = data.slice(1).map(row => row[0]).filter(t => t);
+  return { success: true, data: types };
+}
+
+function getAllData() {
+  return {
+    success: true,
+    data: {
+      personnel: getPersonnel().data,
+      leaves: getLeaves().data,
+      departments: getDepartments().data,
+      tasks: getTasks().data,
+      leaveTypes: getLeaveTypes().data
+    }
+  };
+}
+
+// ==================== PERSONEL İŞLEMLERİ ====================
+
+function addPersonnel(data) {
+  const ss = getSpreadsheet();
+  let sheet = ss.getSheetByName(SHEETS.PERSONNEL);
+  
+  if (!sheet) {
+    getSheetData(SHEETS.PERSONNEL); // Sheet'i oluştur
+    sheet = ss.getSheetByName(SHEETS.PERSONNEL);
+  }
+  
+  const id = data.id || Utilities.getUuid();
+  const createdAt = new Date();
+  
+  sheet.appendRow([
+    id,
+    data.name,
+    data.department,
+    data.task,
+    data.phone || '',
+    data.startDate,
+    createdAt
+  ]);
+  
+  return { 
+    success: true, 
+    message: 'Personel eklendi',
+    data: { id, ...data, createdAt }
+  };
+}
+
+function updatePersonnel(data) {
+  const ss = getSpreadsheet();
+  const sheet = ss.getSheetByName(SHEETS.PERSONNEL);
+  
+  if (!sheet) return { success: false, error: 'Sheet bulunamadı' };
+  
+  const allData = sheet.getDataRange().getValues();
+  let rowIndex = -1;
+  
+  for (let i = 1; i < allData.length; i++) {
+    if (allData[i][0] === data.id) {
+      rowIndex = i + 1;
+      break;
+    }
+  }
+  
+  if (rowIndex === -1) return { success: false, error: 'Personel bulunamadı' };
+  
+  sheet.getRange(rowIndex, 2).setValue(data.name);
+  sheet.getRange(rowIndex, 3).setValue(data.department);
+  sheet.getRange(rowIndex, 4).setValue(data.task);
+  sheet.getRange(rowIndex, 5).setValue(data.phone || '');
+  sheet.getRange(rowIndex, 6).setValue(data.startDate);
+  
+  // İzinlerde de personel adını güncelle
+  updatePersonnelNameInLeaves(data.id, data.name, data.department);
+  
+  return { success: true, message: 'Personel güncellendi' };
+}
+
+function deletePersonnel(id) {
+  const ss = getSpreadsheet();
+  const sheet = ss.getSheetByName(SHEETS.PERSONNEL);
+  
+  if (!sheet) return { success: false, error: 'Sheet bulunamadı' };
+  
+  const allData = sheet.getDataRange().getValues();
+  let rowIndex = -1;
+  
+  for (let i = 1; i < allData.length; i++) {
+    if (allData[i][0] === id) {
+      rowIndex = i + 1;
+      break;
+    }
+  }
+  
+  if (rowIndex === -1) return { success: false, error: 'Personel bulunamadı' };
+  
+  sheet.deleteRow(rowIndex);
+  
+  // İlgili izinleri de sil
+  deleteLeavesByPersonnelId(id);
+  
+  return { success: true, message: 'Personel silindi' };
+}
+
+// ==================== İZİN İŞLEMLERİ ====================
+
+function addLeave(data) {
+  const ss = getSpreadsheet();
+  let sheet = ss.getSheetByName(SHEETS.LEAVES);
+  
+  if (!sheet) {
+    getSheetData(SHEETS.LEAVES);
+    sheet = ss.getSheetByName(SHEETS.LEAVES);
+  }
+  
+  const id = data.id || Utilities.getUuid();
+  const createdAt = new Date();
+  
+  // Personel bilgisini al
+  const personnelResult = getPersonnel();
+  const person = personnelResult.data.find(p => p.id === data.personnelId);
+  
+  if (!person) return { success: false, error: 'Personel bulunamadı' };
+  
+  sheet.appendRow([
+    id,
+    data.personnelId,
+    person.name,
+    person.department,
+    data.type,
+    data.startDate,
+    data.endDate,
+    data.note || '',
+    createdAt
+  ]);
+  
+  return { 
+    success: true, 
+    message: 'İzin eklendi',
+    data: { id, ...data, personnelName: person.name, department: person.department, createdAt }
+  };
+}
+
+function updateLeave(data) {
+  const ss = getSpreadsheet();
+  const sheet = ss.getSheetByName(SHEETS.LEAVES);
+  
+  if (!sheet) return { success: false, error: 'Sheet bulunamadı' };
+  
+  const allData = sheet.getDataRange().getValues();
+  let rowIndex = -1;
+  
+  for (let i = 1; i < allData.length; i++) {
+    if (allData[i][0] === data.id) {
+      rowIndex = i + 1;
+      break;
+    }
+  }
+  
+  if (rowIndex === -1) return { success: false, error: 'İzin bulunamadı' };
+  
+  // Personel bilgisini al
+  const personnelResult = getPersonnel();
+  const person = personnelResult.data.find(p => p.id === data.personnelId);
+  
+  if (!person) return { success: false, error: 'Personel bulunamadı' };
+  
+  sheet.getRange(rowIndex, 2).setValue(data.personnelId);
+  sheet.getRange(rowIndex, 3).setValue(person.name);
+  sheet.getRange(rowIndex, 4).setValue(person.department);
+  sheet.getRange(rowIndex, 5).setValue(data.type);
+  sheet.getRange(rowIndex, 6).setValue(data.startDate);
+  sheet.getRange(rowIndex, 7).setValue(data.endDate);
+  sheet.getRange(rowIndex, 8).setValue(data.note || '');
+  
+  return { success: true, message: 'İzin güncellendi' };
+}
+
+function deleteLeave(id) {
+  const ss = getSpreadsheet();
+  const sheet = ss.getSheetByName(SHEETS.LEAVES);
+  
+  if (!sheet) return { success: false, error: 'Sheet bulunamadı' };
+  
+  const allData = sheet.getDataRange().getValues();
+  let rowIndex = -1;
+  
+  for (let i = 1; i < allData.length; i++) {
+    if (allData[i][0] === id) {
+      rowIndex = i + 1;
+      break;
+    }
+  }
+  
+  if (rowIndex === -1) return { success: false, error: 'İzin bulunamadı' };
+  
+  sheet.deleteRow(rowIndex);
+  
+  return { success: true, message: 'İzin silindi' };
+}
+
+// ==================== YARDIMCI FONKSİYONLAR ====================
+
+function updatePersonnelNameInLeaves(personnelId, newName, newDepartment) {
+  const ss = getSpreadsheet();
+  const sheet = ss.getSheetByName(SHEETS.LEAVES);
+  
+  if (!sheet) return;
+  
+  const allData = sheet.getDataRange().getValues();
+  
+  for (let i = 1; i < allData.length; i++) {
+    if (allData[i][1] === personnelId) {
+      sheet.getRange(i + 1, 3).setValue(newName);
+      sheet.getRange(i + 1, 4).setValue(newDepartment);
+    }
+  }
+}
+
+function deleteLeavesByPersonnelId(personnelId) {
+  const ss = getSpreadsheet();
+  const sheet = ss.getSheetByName(SHEETS.LEAVES);
+  
+  if (!sheet) return;
+  
+  const allData = sheet.getDataRange().getValues();
+  
+  // Ters sırada sil (index kayması olmaması için)
+  for (let i = allData.length - 1; i >= 1; i--) {
+    if (allData[i][1] === personnelId) {
+      sheet.deleteRow(i + 1);
+    }
+  }
+}
+
+// ==================== BAŞLANGIÇ SETUP ====================
+// Bu fonksiyonu bir kez çalıştırarak tüm sheet'leri oluşturabilirsiniz
+function setupSheets() {
+  getSheetData(SHEETS.PERSONNEL);
+  getSheetData(SHEETS.LEAVES);
+  getSheetData(SHEETS.DEPARTMENTS);
+  getSheetData(SHEETS.TASKS);
+  getSheetData(SHEETS.LEAVE_TYPES);
+  
+  Logger.log('Tüm sheet\'ler oluşturuldu!');
+}
