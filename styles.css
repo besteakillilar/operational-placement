@@ -1610,3 +1610,32 @@ tr:hover td {
 .group-stats.compact .group-stat-value {
     font-size: 1.1rem;
 }
+
+/* ==================== MOBILE RESPONSIVE ==================== */
+@media (max-width: 768px) {
+
+    /* Report Filters - Mobile */
+    .report-filters {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 16px;
+    }
+
+    .filter-group {
+        width: 100%;
+    }
+
+    .filter-group select {
+        width: 100%;
+        min-width: unset;
+        padding: 14px 40px 14px 16px;
+        font-size: 1rem;
+    }
+
+    .report-filters .btn {
+        width: 100%;
+        padding: 14px 20px;
+        font-size: 1rem;
+        justify-content: center;
+    }
+}
