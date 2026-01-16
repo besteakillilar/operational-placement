@@ -1638,4 +1638,31 @@ tr:hover td {
         font-size: 1rem;
         justify-content: center;
     }
+
+    /* Navbar - Mobile */
+    .navbar-container {
+        flex-direction: column;
+        height: auto;
+        padding: 16px;
+        gap: 12px;
+    }
+
+    .navbar-brand {
+        justify-content: center;
+        width: 100%;
+    }
+
+    .navbar-right {
+        justify-content: center;
+        width: 100%;
+    }
+
+    .navbar-date {
+        justify-content: center;
+    }
+
+    .navbar-menu {
+        justify-content: center;
+        width: 100%;
+    }
 }
