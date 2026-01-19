@@ -9,7 +9,8 @@ const SHEETS = {
   LEAVES: 'Izinler',
   DEPARTMENTS: 'Departmanlar',
   TASKS: 'Gorevler',
-  LEAVE_TYPES: 'IzinTurleri'
+  LEAVE_TYPES: 'IzinTurleri',
+  USERS: 'Kullanicilar'
 };
 
 // CORS için gerekli
@@ -52,6 +53,9 @@ function handleRequest(e) {
         break;
       case 'getAllData':
         result = getAllData();
+        break;
+      case 'login':
+        result = loginUser(JSON.parse(e.parameter.data));
         break;
       
       // POST işlemleri
@@ -217,6 +221,33 @@ function getAllData() {
   };
 }
 
+// ==================== YARDIMCI ID FONKSİYONU ====================
+
+// Bir sheet için sonraki sıralı ID'yi hesaplar
+function getNextId(sheetName, prefix) {
+  const ss = getSpreadsheet();
+  const sheet = ss.getSheetByName(sheetName);
+  
+  if (!sheet) return prefix + '1';
+  
+  const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return prefix + '1';
+  
+  // Mevcut ID'lerden en yüksek numarayı bul
+  let maxNum = 0;
+  for (let i = 1; i < data.length; i++) {
+    const id = String(data[i][0]);
+    if (id.startsWith(prefix)) {
+      const num = parseInt(id.substring(prefix.length), 10);
+      if (!isNaN(num) && num > maxNum) {
+        maxNum = num;
+      }
+    }
+  }
+  
+  return prefix + (maxNum + 1);
+}
+
 // ==================== PERSONEL İŞLEMLERİ ====================
 
 function addPersonnel(data) {
@@ -228,7 +259,8 @@ function addPersonnel(data) {
     sheet = ss.getSheetByName(SHEETS.PERSONNEL);
   }
   
-  const id = data.id || Utilities.getUuid();
+  // Sıralı ID oluştur: P-1, P-2, P-3...
+  const id = data.id || getNextId(SHEETS.PERSONNEL, 'P-');
   const createdAt = new Date();
   
   sheet.appendRow([
@@ -315,7 +347,8 @@ function addLeave(data) {
     sheet = ss.getSheetByName(SHEETS.LEAVES);
   }
   
-  const id = data.id || Utilities.getUuid();
+  // Sıralı ID oluştur: L-1, L-2, L-3...
+  const id = data.id || getNextId(SHEETS.LEAVES, 'L-');
   const createdAt = new Date();
   
   // Personel bilgisini al
@@ -435,6 +468,41 @@ function deleteLeavesByPersonnelId(personnelId) {
   }
 }
 
+// ==================== LOGIN FONKSİYONLARI ====================
+
+function loginUser(data) {
+  const ss = getSpreadsheet();
+  let sheet = ss.getSheetByName(SHEETS.USERS);
+  
+  if (!sheet) {
+    // Kullanıcılar sheet'i yoksa oluştur ve varsayılan admin ekle
+    sheet = ss.insertSheet(SHEETS.USERS);
+    sheet.appendRow(['Email', 'Sifre', 'Ad']);
+    sheet.appendRow(['admin@admin.com', 'admin123', 'Admin']);
+  }
+  
+  const allData = sheet.getDataRange().getValues();
+  
+  // İlk satır başlık, atla
+  for (let i = 1; i < allData.length; i++) {
+    const email = allData[i][0];
+    const password = allData[i][1];
+    const name = allData[i][2];
+    
+    if (email === data.email && password === data.password) {
+      return {
+        success: true,
+        data: {
+          email: email,
+          name: name
+        }
+      };
+    }
+  }
+  
+  return { success: false, error: 'Geçersiz email veya şifre' };
+}
+
 // ==================== BAŞLANGIÇ SETUP ====================
 // Bu fonksiyonu bir kez çalıştırarak tüm sheet'leri oluşturabilirsiniz
 function setupSheets() {
@@ -443,6 +511,15 @@ function setupSheets() {
   getSheetData(SHEETS.DEPARTMENTS);
   getSheetData(SHEETS.TASKS);
   getSheetData(SHEETS.LEAVE_TYPES);
+  
+  // Kullanıcılar sheet'ini oluştur
+  const ss = getSpreadsheet();
+  let usersSheet = ss.getSheetByName(SHEETS.USERS);
+  if (!usersSheet) {
+    usersSheet = ss.insertSheet(SHEETS.USERS);
+    usersSheet.appendRow(['Email', 'Sifre', 'Ad']);
+    usersSheet.appendRow(['admin@admin.com', 'admin123', 'Admin']);
+  }
   
   Logger.log('Tüm sheet\'ler oluşturuldu!');
 }

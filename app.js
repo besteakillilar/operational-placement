@@ -8,6 +8,7 @@ let leaves = [];
 let departments = [];
 let tasks = [];
 let leaveTypes = [];
+let currentUser = null;
 
 // ==================== API FUNCTIONS ====================
 async function apiCall(action, data = null) {
@@ -527,17 +528,18 @@ function initPersonnelForm() {
         e.preventDefault();
         const submitBtn = form.querySelector('button[type="submit"]');
 
-        const newId = generateId();
+        // Geçici ID (optimistic UI için) - sunucu gerçek ID'yi döndürecek
+        const tempId = 'temp-' + Date.now();
         const data = {
-            id: newId,
             name: document.getElementById('personnel-name').value,
             department: document.getElementById('personnel-department').value,
             task: document.getElementById('personnel-task').value,
             createdAt: new Date().toISOString()
         };
 
-        // OPTIMISTIC UI
-        personnel.push(data);
+        // OPTIMISTIC UI - geçici ID ile göster
+        const tempData = { ...data, id: tempId };
+        personnel.push(tempData);
 
         form.reset();
         document.getElementById('personnel-task').innerHTML = '<option value="">Görev seçin</option>';
@@ -546,14 +548,20 @@ function initPersonnelForm() {
 
         showToast('Personel başarıyla eklendi');
 
-        // BACKGROUND SYNC
+        // BACKGROUND SYNC - sunucudan gerçek ID'yi al
         try {
-            await apiPost('addPersonnel', data);
+            const result = await apiPost('addPersonnel', data);
+            // Geçici ID'yi sunucudan gelen gerçek ID ile değiştir
+            const index = personnel.findIndex(p => p.id === tempId);
+            if (index !== -1 && result.data && result.data.id) {
+                personnel[index].id = result.data.id;
+            }
+            renderPersonnelTable();
         } catch (error) {
             console.error('Background add error:', error);
             showToast('Ekleme sunucuya iletilemedi!', 'error');
             // Rollback
-            personnel = personnel.filter(p => p.id !== newId);
+            personnel = personnel.filter(p => p.id !== tempId);
             renderPersonnelTable();
             updateDashboard();
         }
@@ -781,9 +789,9 @@ function initLeaveForm() {
         e.preventDefault();
         const submitBtn = form.querySelector('button[type="submit"]');
 
-        const newId = generateId();
+        // Geçici ID (optimistic UI için) - sunucu gerçek ID'yi döndürecek
+        const tempId = 'temp-' + Date.now();
         const data = {
-            id: newId,
             personnelId: document.getElementById('leave-personnel').value,
             type: document.getElementById('leave-type').value,
             startDate: document.getElementById('leave-start').value,
@@ -797,12 +805,13 @@ function initLeaveForm() {
             return;
         }
 
-        // OPTIMISTIC UI
+        // OPTIMISTIC UI - geçici ID ile göster
         // frontend update için personel bilgilerini bul
         const person = personnel.find(p => p.id === data.personnelId);
 
         const optimisticLeave = {
             ...data,
+            id: tempId,
             personnelName: person ? person.name : '?',
             department: person ? person.department : '?'
         };
@@ -814,14 +823,20 @@ function initLeaveForm() {
         updateDashboard();
         showToast('İzin başarıyla eklendi');
 
-        // BACKGROUND SYNC
+        // BACKGROUND SYNC - sunucudan gerçek ID'yi al
         try {
-            await apiPost('addLeave', data);
+            const result = await apiPost('addLeave', data);
+            // Geçici ID'yi sunucudan gelen gerçek ID ile değiştir
+            const index = leaves.findIndex(l => l.id === tempId);
+            if (index !== -1 && result.data && result.data.id) {
+                leaves[index].id = result.data.id;
+            }
+            renderLeaveTable();
         } catch (error) {
             console.error('Background add error:', error);
             showToast('Ekleme sunucuya iletilemedi!', 'error');
             // Rollback
-            leaves = leaves.filter(l => l.id !== newId);
+            leaves = leaves.filter(l => l.id !== tempId);
             renderLeaveTable();
             updateDashboard();
         }
@@ -1394,4 +1409,147 @@ async function init() {
     renderLeaveTable();
 }
 
-document.addEventListener('DOMContentLoaded', init);
+// ==================== LOGIN SYSTEM ====================
+function checkLoginStatus() {
+    const savedUser = localStorage.getItem('currentUser');
+    if (savedUser) {
+        currentUser = JSON.parse(savedUser);
+        return true;
+    }
+    return false;
+}
+
+function showLoginPage() {
+    document.getElementById('login-page').classList.remove('hidden');
+    document.getElementById('app-container').classList.add('hidden');
+}
+
+function showAppContainer() {
+    document.getElementById('login-page').classList.add('hidden');
+    document.getElementById('app-container').classList.remove('hidden');
+
+    // Update user info in navbar
+    const userNameEl = document.getElementById('user-name');
+    const userAvatarEl = document.getElementById('user-avatar');
+
+    if (currentUser && userNameEl && userAvatarEl) {
+        userNameEl.textContent = currentUser.name;
+        userAvatarEl.textContent = currentUser.name.charAt(0).toUpperCase();
+    }
+}
+
+function initLoginForm() {
+    const loginForm = document.getElementById('login-form');
+    const loginError = document.getElementById('login-error');
+    const emailInput = document.getElementById('login-email');
+    const passwordInput = document.getElementById('login-password');
+    const rememberMe = document.getElementById('remember-me');
+
+    if (!loginForm) return;
+
+    // Kaydedilmiş bilgileri yükle
+    const savedCredentials = localStorage.getItem('savedCredentials');
+    if (savedCredentials) {
+        const credentials = JSON.parse(savedCredentials);
+        emailInput.value = credentials.email || '';
+        passwordInput.value = credentials.password || '';
+        if (rememberMe) rememberMe.checked = true;
+    }
+
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const email = emailInput.value;
+        const password = passwordInput.value;
+        const submitBtn = loginForm.querySelector('button[type="submit"]');
+
+        // Clear previous error
+        loginError.textContent = '';
+
+        // Show loading state
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="btn-spinner"></span> Giriş yapılıyor...';
+
+        try {
+            const result = await apiCall('login', { email, password });
+
+            if (result.success && result.data) {
+                currentUser = result.data;
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+                // "Beni Hatırla" seçiliyse bilgileri kaydet
+                if (rememberMe && rememberMe.checked) {
+                    localStorage.setItem('savedCredentials', JSON.stringify({ email, password }));
+                } else {
+                    localStorage.removeItem('savedCredentials');
+                }
+
+                showToast(`Hoş geldiniz, ${currentUser.name}!`, 'success');
+                showAppContainer();
+
+                // Load app data
+                await init();
+            } else {
+                loginError.textContent = result.error || 'Giriş başarısız';
+            }
+        } catch (error) {
+            loginError.textContent = 'Giriş yapılamadı. Lütfen tekrar deneyin.';
+        }
+
+        // Reset button
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<span>Giriş Yap</span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>';
+    });
+}
+
+function initUserMenu() {
+    const userMenuBtn = document.getElementById('user-menu-btn');
+    const userMenu = document.querySelector('.user-menu');
+
+    if (!userMenuBtn || !userMenu) return;
+
+    userMenuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        userMenu.classList.toggle('open');
+    });
+
+    // Close menu when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!userMenu.contains(e.target)) {
+            userMenu.classList.remove('open');
+        }
+    });
+}
+
+function handleLogout() {
+    currentUser = null;
+    localStorage.removeItem('currentUser');
+    showToast('Çıkış yapıldı', 'success');
+    showLoginPage();
+
+    // Clear form
+    document.getElementById('login-email').value = '';
+    document.getElementById('login-password').value = '';
+    document.getElementById('login-error').textContent = '';
+}
+
+// ==================== START APPLICATION ====================
+document.addEventListener('DOMContentLoaded', async () => {
+    // Initialize theme
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+
+    // Initialize login form
+    initLoginForm();
+    initUserMenu();
+
+    // Check if user is already logged in
+    if (checkLoginStatus()) {
+        showAppContainer();
+        await init();
+    } else {
+        showLoginPage();
+        // Hide loading overlay
+        document.getElementById('loading-overlay').classList.add('hidden');
+    }
+});
