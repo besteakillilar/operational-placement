@@ -1124,22 +1124,7 @@ tr:hover td {
     color: var(--danger);
 }
 
-/* Leave Note Text */
-.leave-note-text {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    max-width: 200px;
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    line-height: 1.4;
-}
-
-.leave-note-text:not(:empty):not([data-empty="true"]) {
-    cursor: help;
-}
+/* Leave Note Text - Removed special styling to match other table columns */
 
 .action-buttons {
     display: flex;

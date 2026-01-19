@@ -481,12 +481,16 @@ function renderTodayLeaves(todayLeaves) {
     }
 
     container.innerHTML = todayLeaves.map(leave => {
+        // Doğum İzni için tarih gösterme
+        const isMaternityLeave = leave.type === 'Doğum İzni';
+        const dateDisplay = isMaternityLeave ? 'Doğum İzni' : `${formatDate(leave.startDate)} - ${formatDate(leave.endDate)}`;
+
         return `
             <div class="leave-item">
                 <div class="leave-avatar">${getInitials(leave.personnelName)}</div>
                 <div class="leave-info">
                     <div class="leave-name">${leave.personnelName || 'Bilinmiyor'}</div>
-                    <div class="leave-details">${leave.department || '-'} • ${formatDate(leave.startDate)} - ${formatDate(leave.endDate)}</div>
+                    <div class="leave-details">${leave.department || '-'} • ${dateDisplay}</div>
                 </div>
                 <span class="leave-type-badge">${leave.type}</span>
             </div>
@@ -964,6 +968,12 @@ function renderLeaveTable() {
         const isActive = isDateInRange(today, l.startDate, l.endDate);
         const isPast = new Date(l.endDate) < new Date(today);
 
+        // Doğum İzni için tarih ve gün gösterme
+        const isMaternityLeave = l.type === 'Doğum İzni';
+        const startDateDisplay = isMaternityLeave ? '-' : formatDate(l.startDate);
+        const endDateDisplay = isMaternityLeave ? '-' : formatDate(l.endDate);
+        const daysDisplay = isMaternityLeave ? '-' : `<strong>${days}</strong> gün`;
+
         let statusClass = 'status-leave';
         let statusText = 'Beklemede';
         if (isActive) { statusClass = 'status-active'; statusText = 'Aktif'; }
@@ -974,10 +984,10 @@ function renderLeaveTable() {
                 <td><strong>${l.personnelName || 'Bilinmiyor'}</strong></td>
                 <td>${l.department || '-'}</td>
                 <td>${l.type}</td>
-                <td>${formatDate(l.startDate)}</td>
-                <td>${formatDate(l.endDate)}</td>
-                <td><strong>${days}</strong> gün</td>
-                <td><span class="leave-note-text">${l.note || '-'}</span></td>
+                <td>${startDateDisplay}</td>
+                <td>${endDateDisplay}</td>
+                <td>${daysDisplay}</td>
+                <td>${l.note || '-'}</td>
                 <td>
                     <div class="action-buttons">
                         <button class="btn btn-secondary btn-icon-only" onclick="editLeave('${l.id}')" title="Düzenle">
@@ -1095,14 +1105,21 @@ function generateReport() {
 
     tbody.innerHTML = filtered.map(l => {
         const days = getDaysDifference(l.startDate, l.endDate);
+
+        // Doğum İzni için tarih ve gün gösterme
+        const isMaternityLeave = l.type === 'Doğum İzni';
+        const startDateDisplay = isMaternityLeave ? '-' : formatDate(l.startDate);
+        const endDateDisplay = isMaternityLeave ? '-' : formatDate(l.endDate);
+        const daysDisplay = isMaternityLeave ? '-' : `<strong>${days}</strong> gün`;
+
         return `
             <tr>
                 <td><strong>${l.personnelName || 'Bilinmiyor'}</strong></td>
                 <td>${l.department || '-'}</td>
                 <td>${l.type}</td>
-                <td>${formatDate(l.startDate)}</td>
-                <td>${formatDate(l.endDate)}</td>
-                <td><strong>${days}</strong> gün</td>
+                <td>${startDateDisplay}</td>
+                <td>${endDateDisplay}</td>
+                <td>${daysDisplay}</td>
                 <td>${l.note || '-'}</td>
             </tr>
         `;
