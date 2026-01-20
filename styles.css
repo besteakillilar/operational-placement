@@ -798,11 +798,7 @@ body {
     background: linear-gradient(90deg, #a855f7, #c084fc);
 }
 
-/* Leave List */
-.leave-list {
-    max-height: 320px;
-    overflow-y: auto;
-}
+/* Leave List - No max-height or scroll, display all items in the card */
 
 .leave-item {
     display: flex;
