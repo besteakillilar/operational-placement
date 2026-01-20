@@ -567,6 +567,28 @@ function updateTaskSelect(departmentSelectId, taskSelectId) {
         tasksForDept.map(t => `<option value="${t}">${t}</option>`).join('');
 }
 
+function updateTaskFilterOptions() {
+    const deptFilter = document.getElementById('personnel-filter').value;
+    const taskFilterSelect = document.getElementById('personnel-task-filter');
+
+    let tasksToShow = [];
+    if (deptFilter) {
+        // Sadece seçili departmanın görevlerini göster
+        tasksToShow = getTasksForDepartment(deptFilter);
+    } else {
+        // Tüm görevleri göster
+        tasksToShow = tasks.map(t => t.task);
+        // Tekrarlananları kaldır
+        tasksToShow = [...new Set(tasksToShow)];
+    }
+
+    taskFilterSelect.innerHTML = '<option value="">Tüm Görevler</option>' +
+        tasksToShow.map(t => `<option value="${t}">${t}</option>`).join('');
+
+    // Task filter değerini sıfırla
+    taskFilterSelect.value = '';
+}
+
 function initPersonnelForm() {
     const form = document.getElementById('personnel-form');
     const deptSelect = document.getElementById('personnel-department');
@@ -624,7 +646,14 @@ function initPersonnelForm() {
 
     // Search and filter
     document.getElementById('personnel-search').addEventListener('input', renderPersonnelTable);
-    document.getElementById('personnel-filter').addEventListener('change', renderPersonnelTable);
+    document.getElementById('personnel-filter').addEventListener('change', () => {
+        updateTaskFilterOptions();
+        renderPersonnelTable();
+    });
+    document.getElementById('personnel-task-filter').addEventListener('change', renderPersonnelTable);
+
+    // Populate task filter options
+    updateTaskFilterOptions();
 
     // Edit form
     initEditPersonnelForm();
@@ -708,12 +737,14 @@ function renderPersonnelTable() {
     const tbody = document.getElementById('personnel-table-body');
     const search = document.getElementById('personnel-search').value.toLowerCase();
     const filter = document.getElementById('personnel-filter').value;
+    const taskFilter = document.getElementById('personnel-task-filter').value;
     const today = getToday();
 
     let filtered = personnel.filter(p => {
         const matchesSearch = p.name.toLowerCase().includes(search);
         const matchesFilter = !filter || p.department === filter;
-        return matchesSearch && matchesFilter;
+        const matchesTaskFilter = !taskFilter || p.task === taskFilter;
+        return matchesSearch && matchesFilter && matchesTaskFilter;
     });
 
     if (filtered.length === 0) {
@@ -1320,6 +1351,9 @@ function renderPersonnelPage() {
                             <option value="">Tüm Departmanlar</option>
                             <option value="Paketleme">Paketleme</option>
                             <option value="Balon Tedarik - Sevkiyat">Balon Tedarik - Sevkiyat</option>
+                        </select>
+                        <select id="personnel-task-filter" class="filter-select">
+                            <option value="">Tüm Görevler</option>
                         </select>
                     </div>
                 </div>
