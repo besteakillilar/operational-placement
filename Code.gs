@@ -104,7 +104,7 @@ function getSheetData(sheetName) {
     sheet = ss.insertSheet(sheetName);
     // Başlıkları ekle
     if (sheetName === SHEETS.PERSONNEL) {
-      sheet.appendRow(['ID', 'Ad Soyad', 'Departman', 'Görev', 'Telefon', 'İşe Başlama', 'Oluşturma Tarihi']);
+      sheet.appendRow(['ID', 'Ad Soyad', 'Departman', 'Görev', 'Not', 'Oluşturma Tarihi']);
     } else if (sheetName === SHEETS.LEAVES) {
       sheet.appendRow(['ID', 'Personel ID', 'Personel Adı', 'Departman', 'İzin Türü', 'Başlangıç', 'Bitiş', 'Açıklama', 'Oluşturma Tarihi']);
     } else if (sheetName === SHEETS.DEPARTMENTS) {
@@ -153,9 +153,8 @@ function getPersonnel() {
     name: row[1],
     department: row[2],
     task: row[3],
-    phone: row[4],
-    startDate: row[5] ? Utilities.formatDate(new Date(row[5]), 'Europe/Istanbul', 'yyyy-MM-dd') : '',
-    createdAt: row[6]
+    note: row[4] || '',
+    createdAt: row[5]
   })).filter(p => p.id); // Boş satırları filtrele
   
   return { success: true, data: personnel };
@@ -268,8 +267,7 @@ function addPersonnel(data) {
     data.name,
     data.department,
     data.task,
-    data.phone || '',
-    data.startDate,
+    data.note || '',
     createdAt
   ]);
   
@@ -301,8 +299,7 @@ function updatePersonnel(data) {
   sheet.getRange(rowIndex, 2).setValue(data.name);
   sheet.getRange(rowIndex, 3).setValue(data.department);
   sheet.getRange(rowIndex, 4).setValue(data.task);
-  sheet.getRange(rowIndex, 5).setValue(data.phone || '');
-  sheet.getRange(rowIndex, 6).setValue(data.startDate);
+  sheet.getRange(rowIndex, 5).setValue(data.note || '');
   
   // İzinlerde de personel adını güncelle
   updatePersonnelNameInLeaves(data.id, data.name, data.department);
