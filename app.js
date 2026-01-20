@@ -504,12 +504,24 @@ function showLeaveDetail(leaveId) {
     const leave = leaves.find(l => l.id === leaveId);
     if (!leave) return;
 
+    // Personel bilgilerini bul (personel notu için)
+    const person = personnel.find(p => p.id === leave.personnelId);
+
     const isMaternityLeave = leave.type === 'Doğum İzni';
 
     // Modal içeriklerini doldur
     document.getElementById('leave-detail-avatar').textContent = getInitials(leave.personnelName);
     document.getElementById('leave-detail-name').textContent = leave.personnelName || 'Bilinmiyor';
-    document.getElementById('leave-detail-department').textContent = leave.department || '-';
+
+    // Departman yanına personel notu ekle (varsa)
+    const deptText = leave.department || '-';
+    const personnelNote = person && person.note && person.note.trim() ? person.note : '';
+    if (personnelNote) {
+        document.getElementById('leave-detail-department').innerHTML = `${deptText} <span class="personnel-note-badge">${personnelNote}</span>`;
+    } else {
+        document.getElementById('leave-detail-department').textContent = deptText;
+    }
+
     document.getElementById('leave-detail-type').textContent = leave.type;
 
     // Tarih ve süre bilgileri
@@ -527,7 +539,7 @@ function showLeaveDetail(leaveId) {
         document.getElementById('leave-detail-duration').textContent = `${days} Gün`;
     }
 
-    // Açıklama bölümü
+    // İzin açıklaması bölümü
     const noteSection = document.getElementById('leave-detail-note-section');
     const noteElement = document.getElementById('leave-detail-note');
 
@@ -576,6 +588,7 @@ function initPersonnelForm() {
             name: document.getElementById('personnel-name').value,
             department: document.getElementById('personnel-department').value,
             task: document.getElementById('personnel-task').value,
+            note: document.getElementById('personnel-note').value,
             createdAt: new Date().toISOString()
         };
 
@@ -638,13 +651,15 @@ function initEditPersonnelForm() {
         const name = document.getElementById('edit-personnel-name').value;
         const department = document.getElementById('edit-personnel-department').value;
         const task = document.getElementById('edit-personnel-task').value;
+        const note = document.getElementById('edit-personnel-note').value;
 
         // 1. DIRTY CHECK: Değişiklik var mı?
         // Sadece formdaki alanları kontrol et
         const isUnchanged =
             originalPerson.name === name &&
             originalPerson.department === department &&
-            originalPerson.task === task;
+            originalPerson.task === task &&
+            (originalPerson.note || '') === note;
 
         if (isUnchanged) {
             closeModal('edit-personnel-modal');
@@ -656,6 +671,7 @@ function initEditPersonnelForm() {
             name: name,
             department: department,
             task: task,
+            note: note,
             phone: originalPerson.phone || '',
             startDate: originalPerson.startDate || ''
         };
@@ -710,9 +726,21 @@ function renderPersonnelTable() {
         const statusClass = isOnLeave ? 'status-leave' : 'status-active';
         const statusText = isOnLeave ? 'İzinli' : 'Aktif';
 
+        // Not ikonu - sadece not varsa göster
+        const noteIcon = p.note && p.note.trim() ? `
+            <span class="note-indicator" title="${p.note.replace(/"/g, '&quot;')}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                </svg>
+            </span>
+        ` : '';
+
         return `
             <tr>
-                <td><strong>${p.name}</strong></td>
+                <td><strong>${p.name}</strong>${noteIcon}</td>
                 <td>${p.department}</td>
                 <td><span class="task-badge">${p.task || '-'}</span></td>
                 <td>
@@ -743,6 +771,7 @@ function editPersonnel(id) {
     document.getElementById('edit-personnel-id').value = person.id;
     document.getElementById('edit-personnel-name').value = person.name;
     document.getElementById('edit-personnel-department').value = person.department;
+    document.getElementById('edit-personnel-note').value = person.note || '';
 
     // Update task select and set value
     updateTaskSelect('edit-personnel-department', 'edit-personnel-task');
@@ -1262,6 +1291,10 @@ function renderPersonnelPage() {
                     <div class="form-group">
                         <label for="personnel-task">Görev</label>
                         <select id="personnel-task" required><option value="">Önce departman seçin</option></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="personnel-note">Not <span class="optional-label">(Opsiyonel)</span></label>
+                        <textarea id="personnel-note" placeholder="Denemede, veri girişi vb. açıklama..." rows="2"></textarea>
                     </div>
                     <button type="submit" class="btn btn-primary btn-icon">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
