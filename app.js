@@ -487,7 +487,7 @@ function renderTodayLeaves(todayLeaves) {
         const dateDisplay = isMaternityLeave ? 'Doğum İzni' : `${formatDate(leave.startDate)} - ${formatDate(leave.endDate)}`;
 
         return `
-            <div class="leave-item">
+            <div class="leave-item leave-item-clickable" data-leave-id="${leave.id}" onclick="showLeaveDetail('${leave.id}')">
                 <div class="leave-avatar">${getInitials(leave.personnelName)}</div>
                 <div class="leave-info">
                     <div class="leave-name">${leave.personnelName || 'Bilinmiyor'}</div>
@@ -497,6 +497,48 @@ function renderTodayLeaves(todayLeaves) {
             </div>
         `;
     }).join('');
+}
+
+// İzin detay modalını göster
+function showLeaveDetail(leaveId) {
+    const leave = leaves.find(l => l.id === leaveId);
+    if (!leave) return;
+
+    const isMaternityLeave = leave.type === 'Doğum İzni';
+
+    // Modal içeriklerini doldur
+    document.getElementById('leave-detail-avatar').textContent = getInitials(leave.personnelName);
+    document.getElementById('leave-detail-name').textContent = leave.personnelName || 'Bilinmiyor';
+    document.getElementById('leave-detail-department').textContent = leave.department || '-';
+    document.getElementById('leave-detail-type').textContent = leave.type;
+
+    // Tarih ve süre bilgileri
+    const datesRow = document.getElementById('leave-detail-dates-row');
+    const durationRow = document.getElementById('leave-detail-duration-row');
+
+    if (isMaternityLeave) {
+        datesRow.style.display = 'none';
+        durationRow.style.display = 'none';
+    } else {
+        datesRow.style.display = 'flex';
+        durationRow.style.display = 'flex';
+        document.getElementById('leave-detail-dates').textContent = `${formatDate(leave.startDate)} - ${formatDate(leave.endDate)}`;
+        const days = getDaysDifference(leave.startDate, leave.endDate);
+        document.getElementById('leave-detail-duration').textContent = `${days} Gün`;
+    }
+
+    // Açıklama bölümü
+    const noteSection = document.getElementById('leave-detail-note-section');
+    const noteElement = document.getElementById('leave-detail-note');
+
+    if (leave.note && leave.note.trim()) {
+        noteSection.style.display = 'block';
+        noteElement.textContent = leave.note;
+    } else {
+        noteSection.style.display = 'none';
+    }
+
+    openModal('leave-detail-modal');
 }
 
 // ==================== PERSONNEL MANAGEMENT ====================
