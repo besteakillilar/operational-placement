@@ -383,6 +383,12 @@ function renderDepartmentDistribution(container, onLeaveIds) {
 
     container.innerHTML = `
         <div class="group-card paketleme" onclick="showGroupPersonnelModal('department', 'Paketleme')">
+            <div class="view-icon-corner">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                </svg>
+            </div>
             <div class="group-icon">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
@@ -410,6 +416,12 @@ function renderDepartmentDistribution(container, onLeaveIds) {
             <div class="group-progress"><div class="progress-bar" style="width: ${paketlemeProgress}%"></div></div>
         </div>
         <div class="group-card balon" onclick="showGroupPersonnelModal('department', 'Balon Tedarik - Sevkiyat')">
+            <div class="view-icon-corner">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                </svg>
+            </div>
             <div class="group-icon">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="10" r="7"/>
@@ -478,6 +490,12 @@ function renderTaskDistribution(container, onLeaveIds) {
 
         return `
             <div class="group-card task-card" onclick="showGroupPersonnelModal('task', '${task.name.replace(/'/g, "\\'")}')">
+                <div class="view-icon-corner">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                </div>
                 <div class="group-icon task-icon">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
@@ -622,7 +640,15 @@ function renderTodayLeaves(todayLeaves) {
                     <div class="leave-name">${leave.personnelName || 'Bilinmiyor'}</div>
                     <div class="leave-details">${leave.department || '-'} • ${dateDisplay}</div>
                 </div>
-                <span class="leave-type-badge">${leave.type}</span>
+                <div class="leave-actions">
+                    <span class="leave-type-badge">${leave.type}</span>
+                    <div class="view-icon-inline">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                    </div>
+                </div>
             </div>
         `;
     }).join('');
@@ -1428,6 +1454,12 @@ function renderDashboardPage() {
                 </div>
             </div>
             <div class="stat-card stat-needed" onclick="showNeededPersonnelModal()">
+                <div class="view-icon-corner">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                </div>
                 <div class="stat-icon">🔔</div>
                 <div class="stat-content">
                     <span class="stat-value" id="needed-personnel">0</span>
