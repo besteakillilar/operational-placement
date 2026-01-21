@@ -18,8 +18,23 @@ async function apiCall(action, data = null) {
             url += `&data=${encodeURIComponent(JSON.stringify(data))}`;
         }
 
-        const response = await fetch(url);
-        const result = await response.json();
+        const response = await fetch(url, {
+            method: 'GET',
+            redirect: 'follow'
+        });
+        if (!response.ok) {
+            if (response.status === 404) {
+                throw new Error('API URL Hatası (404). Lütfen yeni deployment yapın ve URL güncelleyin.');
+            }
+            throw new Error(`HTTP Hatası: ${response.status}`);
+        }
+
+        let result;
+        try {
+            result = await response.json();
+        } catch (e) {
+            throw new Error('API Yanıt Hatası: "Who has access" ayarını "Anyone" yapınız.');
+        }
 
         if (!result.success) {
             throw new Error(result.error || 'API hatası');
@@ -43,8 +58,20 @@ async function apiPost(action, data = null, id = null) {
             url += `&id=${encodeURIComponent(id)}`;
         }
 
-        const response = await fetch(url, { method: 'POST' });
-        const result = await response.json();
+        const response = await fetch(url, {
+            method: 'POST',
+            redirect: 'follow'
+        });
+        if (!response.ok) {
+            throw new Error(`HTTP Hatası: ${response.status}`);
+        }
+
+        let result;
+        try {
+            result = await response.json();
+        } catch (e) {
+            throw new Error('API Yanıt Hatası: "Who has access" ayarını "Anyone" yapınız.');
+        }
 
         if (!result.success) {
             throw new Error(result.error || 'API hatası');

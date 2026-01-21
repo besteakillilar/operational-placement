@@ -1860,6 +1860,15 @@ tr:hover td {
     display: flex;
     align-items: center;
     gap: 12px;
+    text-align: left;
+    /* Sola hizalama */
+}
+
+/* İsim ve görev bilgisini içeren div için */
+.personnel-list-item .personnel-info>div:not(.personnel-avatar) {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
 }
 
 .personnel-list-item .personnel-avatar {
