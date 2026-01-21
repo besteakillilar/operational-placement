@@ -85,6 +85,13 @@ async function loadAllData(showOverlay = true) {
         // Update departments array if it contains old name
         departments = departments.map(d => d === 'Balon Tedarik' ? 'Balon Tedarik - Sevkiyat' : d);
 
+        // Update tasks array if it contains old department name
+        tasks.forEach(t => {
+            if (t.department === 'Balon Tedarik') {
+                t.department = 'Balon Tedarik - Sevkiyat';
+            }
+        });
+
         // Fallback to defaults if empty
         if (departments.length === 0) {
             departments = ['Paketleme', 'Balon Tedarik - Sevkiyat'];
@@ -292,9 +299,17 @@ function updateDashboard() {
     const onLeaveCount = onLeaveIds.length;
     const presentCount = totalPersonnel - onLeaveCount;
 
+    // Calculate needed packaging personnel
+    // Hedef: 45 kişi (Makine1:6, Makine2:4, Makine3:6, Makine4:6, Makine5:6, Elle:10, Numune:2, Kalite:2, Yedek:3)
+    const REQUIRED_PACKAGING = 45;
+    const paketlemePersonnel = personnel.filter(p => p.department === 'Paketleme');
+    const totalPaketleme = paketlemePersonnel.length;
+    const neededPersonnel = Math.max(0, REQUIRED_PACKAGING - totalPaketleme);
+
     document.getElementById('total-personnel').textContent = totalPersonnel;
     document.getElementById('present-personnel').textContent = presentCount;
     document.getElementById('on-leave-personnel').textContent = onLeaveCount;
+    document.getElementById('needed-personnel').textContent = neededPersonnel;
 
     // Render distribution based on current view
     renderDistribution(currentDistributionView, onLeaveIds);
@@ -340,7 +355,7 @@ function renderDepartmentDistribution(container, onLeaveIds) {
     const balonProgress = balon.length > 0 ? ((balon.length - balonOnLeave) / balon.length) * 100 : 0;
 
     container.innerHTML = `
-        <div class="group-card paketleme">
+        <div class="group-card paketleme" onclick="showGroupPersonnelModal('department', 'Paketleme')">
             <div class="group-icon">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
@@ -367,7 +382,7 @@ function renderDepartmentDistribution(container, onLeaveIds) {
             </div>
             <div class="group-progress"><div class="progress-bar" style="width: ${paketlemeProgress}%"></div></div>
         </div>
-        <div class="group-card balon">
+        <div class="group-card balon" onclick="showGroupPersonnelModal('department', 'Balon Tedarik - Sevkiyat')">
             <div class="group-icon">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="10" r="7"/>
@@ -435,7 +450,7 @@ function renderTaskDistribution(container, onLeaveIds) {
         const progress = total > 0 ? (present / total) * 100 : 0;
 
         return `
-            <div class="group-card task-card">
+            <div class="group-card task-card" onclick="showGroupPersonnelModal('task', '${task.name.replace(/'/g, "\\'")}')">
                 <div class="group-icon task-icon">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
@@ -465,6 +480,93 @@ function renderTaskDistribution(container, onLeaveIds) {
             </div>
         `;
     }).join('');
+}
+
+// Grup personel modalını göster
+function showGroupPersonnelModal(type, value) {
+    const today = getToday();
+    let groupPersonnel = [];
+    let title = '';
+
+    if (type === 'department') {
+        groupPersonnel = personnel.filter(p => p.department === value);
+        title = value;
+    } else if (type === 'task') {
+        groupPersonnel = personnel.filter(p => p.task === value);
+        title = value;
+    }
+
+    // Bugün izinli olanları bul
+    const onLeaveIds = leaves
+        .filter(l => isDateInRange(today, l.startDate, l.endDate))
+        .map(l => l.personnelId);
+
+    const presentCount = groupPersonnel.filter(p => !onLeaveIds.includes(p.id)).length;
+    const leaveCount = groupPersonnel.filter(p => onLeaveIds.includes(p.id)).length;
+
+    // Modal başlığını güncelle
+    document.getElementById('group-modal-title').textContent = title;
+    document.getElementById('group-modal-present').textContent = presentCount;
+    document.getElementById('group-modal-leave').textContent = leaveCount;
+
+    // Personel listesini oluştur
+    const listContainer = document.getElementById('group-personnel-list');
+
+    if (groupPersonnel.length === 0) {
+        listContainer.innerHTML = `
+            <div class="empty-state" style="padding: 40px; text-align: center;">
+                <p style="color: var(--text-muted);">Bu grupta personel bulunamadı</p>
+            </div>
+        `;
+    } else {
+        // Önce çalışanlar, sonra izinliler
+        const sortedPersonnel = [...groupPersonnel].sort((a, b) => {
+            const aOnLeave = onLeaveIds.includes(a.id);
+            const bOnLeave = onLeaveIds.includes(b.id);
+            if (aOnLeave === bOnLeave) return a.name.localeCompare(b.name);
+            return aOnLeave ? 1 : -1;
+        });
+
+        listContainer.innerHTML = sortedPersonnel.map(p => {
+            const isOnLeave = onLeaveIds.includes(p.id);
+            const statusClass = isOnLeave ? 'on-leave' : 'present';
+            const statusText = isOnLeave ? 'İzinli' : 'Çalışıyor';
+            const initials = getInitials(p.name);
+
+            return `
+                <div class="personnel-list-item">
+                    <div class="personnel-info">
+                        <div class="personnel-avatar ${statusClass}">${initials}</div>
+                        <div>
+                            <div class="personnel-name">${p.name}</div>
+                            <div class="personnel-task">${type === 'department' ? (p.task || '-') : (p.department || '-')}</div>
+                        </div>
+                    </div>
+                    <span class="personnel-status ${statusClass}">${statusText}</span>
+                </div>
+            `;
+        }).join('');
+    }
+
+    openModal('group-personnel-modal');
+}
+
+// Gerekli personel modalını göster
+function showNeededPersonnelModal() {
+    const REQUIRED_PACKAGING = 45;
+
+    // Paketleme departmanındaki toplam personel sayısı
+    const paketlemePersonnel = personnel.filter(p => p.department === 'Paketleme');
+    const totalPaketleme = paketlemePersonnel.length;
+    const neededPersonnel = Math.max(0, REQUIRED_PACKAGING - totalPaketleme);
+
+    // Modal değerlerini güncelle
+    document.getElementById('needed-current').textContent = totalPaketleme;
+    document.getElementById('needed-result').textContent = neededPersonnel;
+    document.getElementById('needed-active-text').textContent = totalPaketleme;
+    document.getElementById('needed-result-text').textContent = neededPersonnel;
+
+    openModal('needed-personnel-modal');
 }
 
 function renderTodayLeaves(todayLeaves) {
@@ -646,7 +748,13 @@ function initPersonnelForm() {
 
     // Search and filter
     document.getElementById('personnel-search').addEventListener('input', renderPersonnelTable);
-    document.getElementById('personnel-filter').addEventListener('change', () => {
+
+    // Populate department filter dynamically
+    const deptFilterSelect = document.getElementById('personnel-filter');
+    deptFilterSelect.innerHTML = '<option value="">Tüm Departmanlar</option>' +
+        departments.map(d => `<option value="${d}">${d}</option>`).join('');
+
+    deptFilterSelect.addEventListener('change', () => {
         updateTaskFilterOptions();
         renderPersonnelTable();
     });
@@ -752,6 +860,24 @@ function renderPersonnelTable() {
         return;
     }
 
+    // Helper function to convert task name to CSS class
+    const getTaskClass = (task) => {
+        if (!task) return 'task-default';
+        const taskLower = task.toLowerCase();
+        if (taskLower === 'sorumlu') return 'task-sorumlu';
+        if (taskLower === 'paketleme') return 'task-paketleme';
+        if (taskLower.includes('kalite kontrol')) return 'task-kalite-kontrol';
+        if (taskLower.includes('numune')) return 'task-numune';
+        if (taskLower.includes('reklamlık') || taskLower.includes('reklamlik')) return 'task-tr-reklamlik';
+        if (taskLower.includes('paketleme çıkış') || taskLower.includes('paketleme cikis')) return 'task-paketleme-cikis';
+        if (taskLower.includes('paketleme tartım') || taskLower.includes('paketleme tartim')) return 'task-paketleme-tartim';
+        if (taskLower.includes('stok') && taskLower.includes('sevkiyat')) return 'task-stok-sevkiyat';
+        if (taskLower === 'tedarik') return 'task-tedarik';
+        if (taskLower.includes('sevkiyat hazırlık') || taskLower.includes('sevkiyat hazirlik')) return 'task-sevkiyat-hazirlik';
+        if (taskLower === 'dolum') return 'task-dolum';
+        return 'task-default';
+    };
+
     tbody.innerHTML = filtered.map(p => {
         const isOnLeave = leaves.some(l => l.personnelId === p.id && isDateInRange(today, l.startDate, l.endDate));
         const statusClass = isOnLeave ? 'status-leave' : 'status-active';
@@ -769,11 +895,14 @@ function renderPersonnelTable() {
             </span>
         ` : '';
 
+        // Get task-specific CSS class
+        const taskClass = getTaskClass(p.task);
+
         return `
             <tr>
                 <td><strong>${p.name}</strong>${noteIcon}</td>
                 <td>${p.department}</td>
-                <td><span class="task-badge">${p.task || '-'}</span></td>
+                <td><span class="task-badge ${taskClass}">${p.task || '-'}</span></td>
                 <td>
                     <div class="action-buttons">
                         <button class="btn btn-secondary btn-icon-only" onclick="editPersonnel('${p.id}')" title="Düzenle">
@@ -1206,11 +1335,10 @@ function generateReport() {
 
     const totalDays = filtered.reduce((sum, l) => sum + getDaysDifference(l.startDate, l.endDate), 0);
     const totalCount = filtered.length;
-    const avgDays = totalCount > 0 ? (totalDays / totalCount).toFixed(1) : 0;
 
     document.getElementById('total-leave-days').textContent = totalDays;
     document.getElementById('total-leave-count').textContent = totalCount;
-    document.getElementById('avg-leave-days').textContent = avgDays;
+
 
     // Render table
     const tbody = document.getElementById('report-table-body');
@@ -1270,6 +1398,13 @@ function renderDashboardPage() {
                 <div class="stat-content">
                     <span class="stat-value" id="on-leave-personnel">0</span>
                     <span class="stat-label">İzinli Personel</span>
+                </div>
+            </div>
+            <div class="stat-card stat-needed" onclick="showNeededPersonnelModal()">
+                <div class="stat-icon">🔔</div>
+                <div class="stat-content">
+                    <span class="stat-value" id="needed-personnel">0</span>
+                    <span class="stat-label">Gerekli Paketleme Personeli</span>
                 </div>
             </div>
         </div>
@@ -1349,8 +1484,6 @@ function renderPersonnelPage() {
                         </div>
                         <select id="personnel-filter" class="filter-select">
                             <option value="">Tüm Departmanlar</option>
-                            <option value="Paketleme">Paketleme</option>
-                            <option value="Balon Tedarik - Sevkiyat">Balon Tedarik - Sevkiyat</option>
                         </select>
                         <select id="personnel-task-filter" class="filter-select">
                             <option value="">Tüm Görevler</option>
@@ -1469,13 +1602,6 @@ function renderReportsPage() {
                     <div class="summary-content">
                         <span class="summary-value" id="total-leave-count">0</span>
                         <span class="summary-label">Toplam İzin Sayısı</span>
-                    </div>
-                </div>
-                <div class="summary-card">
-                    <div class="summary-icon orange">⏱️</div>
-                    <div class="summary-content">
-                        <span class="summary-value" id="avg-leave-days">0</span>
-                        <span class="summary-label">Ortalama İzin Süresi</span>
                     </div>
                 </div>
             </div>

@@ -365,6 +365,86 @@
         </div>
     </div>
 
+    <!-- Group Personnel Modal -->
+    <div id="group-personnel-modal" class="modal">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3 id="group-modal-title">Personel Listesi</h3>
+                <button class="modal-close" onclick="closeModal('group-personnel-modal')">✕</button>
+            </div>
+            <div class="group-modal-content">
+                <div class="group-modal-stats">
+                    <div class="group-modal-stat present">
+                        <span class="stat-icon">✅</span>
+                        <span class="stat-value" id="group-modal-present">0</span>
+                        <span class="stat-label">Çalışan</span>
+                    </div>
+                    <div class="group-modal-stat leave">
+                        <span class="stat-icon">📅</span>
+                        <span class="stat-value" id="group-modal-leave">0</span>
+                        <span class="stat-label">İzinli</span>
+                    </div>
+                </div>
+                <div class="group-personnel-list" id="group-personnel-list">
+                    <!-- Personel listesi buraya gelecek -->
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="closeModal('group-personnel-modal')">Tamam</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Needed Personnel Modal -->
+    <div id="needed-personnel-modal" class="modal">
+        <div class="modal-content modal-wide">
+            <div class="modal-header">
+                <h3>📦 Gerekli Paketleme Personeli Hesabı</h3>
+                <button class="modal-close" onclick="closeModal('needed-personnel-modal')">✕</button>
+            </div>
+            <div class="needed-modal-content">
+                <div class="needed-summary">
+                    <div class="needed-stat target">
+                        <span class="needed-value">45</span>
+                        <span class="needed-label">Hedef Personel</span>
+                    </div>
+                    <div class="needed-stat current">
+                        <span class="needed-value" id="needed-current">0</span>
+                        <span class="needed-label">Toplam Paketleme</span>
+                    </div>
+                    <div class="needed-stat result">
+                        <span class="needed-value" id="needed-result">0</span>
+                        <span class="needed-label">Gerekli Yeni Personel</span>
+                    </div>
+                </div>
+
+                <div class="needed-breakdown">
+                    <h4>📊 İhtiyaç Dağılımı (45 Kişi)</h4>
+                    <div class="breakdown-grid">
+                        <div class="breakdown-row"><span>Makine 1</span><span>6</span></div>
+                        <div class="breakdown-row"><span>Makine 2</span><span>4</span></div>
+                        <div class="breakdown-row"><span>Makine 3</span><span>6</span></div>
+                        <div class="breakdown-row"><span>Makine 4</span><span>6</span></div>
+                        <div class="breakdown-row"><span>Makine 5</span><span>6</span></div>
+                        <div class="breakdown-row"><span>Elle Paketleme</span><span>10</span></div>
+                        <div class="breakdown-row"><span>Numune</span><span>2</span></div>
+                        <div class="breakdown-row"><span>Kalite Kontrol</span><span>2</span></div>
+                        <div class="breakdown-row"><span>Yedek</span><span>3</span></div>
+                        <div class="breakdown-row total"><span>TOPLAM</span><span>45</span></div>
+                    </div>
+                </div>
+
+                <div class="needed-formula">
+                    <strong>Hesaplama:</strong> 45 (Hedef) - <span id="needed-active-text">0</span> (Toplam Paketleme) =
+                    <span id="needed-result-text">0</span> (Gerekli Yeni Personel)
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="closeModal('needed-personnel-modal')">Tamam</button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/tr.js"></script>
     <script src="app.js"></script>
