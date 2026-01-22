@@ -258,15 +258,20 @@ function addPersonnel(data) {
     sheet = ss.getSheetByName(SHEETS.PERSONNEL);
   }
   
+  // Validasyon: Boş veri eklemeyi engelle
+  if (!data || !data.name || !data.name.trim()) {
+    return { success: false, error: 'Personel adı boş olamaz' };
+  }
+  
   // Sıralı ID oluştur: P-1, P-2, P-3...
   const id = data.id || getNextId(SHEETS.PERSONNEL, 'P-');
   const createdAt = new Date();
   
   sheet.appendRow([
     id,
-    data.name,
-    data.department,
-    data.task,
+    data.name.trim(),
+    data.department || '',
+    data.task || '',
     data.note || '',
     createdAt
   ]);
@@ -287,8 +292,10 @@ function updatePersonnel(data) {
   const allData = sheet.getDataRange().getValues();
   let rowIndex = -1;
   
+  // String'e çevirerek karşılaştır
+  const searchId = String(data.id);
   for (let i = 1; i < allData.length; i++) {
-    if (allData[i][0] === data.id) {
+    if (String(allData[i][0]) === searchId) {
       rowIndex = i + 1;
       break;
     }
@@ -316,8 +323,10 @@ function deletePersonnel(id) {
   const allData = sheet.getDataRange().getValues();
   let rowIndex = -1;
   
+  // String'e çevirerek karşılaştır
+  const searchId = String(id);
   for (let i = 1; i < allData.length; i++) {
-    if (allData[i][0] === id) {
+    if (String(allData[i][0]) === searchId) {
       rowIndex = i + 1;
       break;
     }
@@ -344,15 +353,23 @@ function addLeave(data) {
     sheet = ss.getSheetByName(SHEETS.LEAVES);
   }
   
+  // Validasyon: personnelId boş olamaz
+  if (!data || !data.personnelId) {
+    return { success: false, error: 'İzin için personel seçilmedi' };
+  }
+  
   // Sıralı ID oluştur: L-1, L-2, L-3...
   const id = data.id || getNextId(SHEETS.LEAVES, 'L-');
   const createdAt = new Date();
   
-  // Personel bilgisini al
+  // Personel bilgisini al - String'e çevirerek karşılaştır
   const personnelResult = getPersonnel();
-  const person = personnelResult.data.find(p => p.id === data.personnelId);
+  const searchId = String(data.personnelId);
+  const person = personnelResult.data.find(p => String(p.id) === searchId);
   
-  if (!person) return { success: false, error: 'Personel bulunamadı' };
+  if (!person) {
+    return { success: false, error: 'Personel bulunamadı (ID: ' + searchId + ')' };
+  }
   
   sheet.appendRow([
     id,
@@ -382,8 +399,10 @@ function updateLeave(data) {
   const allData = sheet.getDataRange().getValues();
   let rowIndex = -1;
   
+  // String'e çevirerek karşılaştır
+  const searchLeaveId = String(data.id);
   for (let i = 1; i < allData.length; i++) {
-    if (allData[i][0] === data.id) {
+    if (String(allData[i][0]) === searchLeaveId) {
       rowIndex = i + 1;
       break;
     }
@@ -391,11 +410,12 @@ function updateLeave(data) {
   
   if (rowIndex === -1) return { success: false, error: 'İzin bulunamadı' };
   
-  // Personel bilgisini al
+  // Personel bilgisini al - String'e çevirerek karşılaştır
   const personnelResult = getPersonnel();
-  const person = personnelResult.data.find(p => p.id === data.personnelId);
+  const searchPersonnelId = String(data.personnelId);
+  const person = personnelResult.data.find(p => String(p.id) === searchPersonnelId);
   
-  if (!person) return { success: false, error: 'Personel bulunamadı' };
+  if (!person) return { success: false, error: 'Personel bulunamadı (ID: ' + searchPersonnelId + ')' };
   
   sheet.getRange(rowIndex, 2).setValue(data.personnelId);
   sheet.getRange(rowIndex, 3).setValue(person.name);
@@ -417,8 +437,10 @@ function deleteLeave(id) {
   const allData = sheet.getDataRange().getValues();
   let rowIndex = -1;
   
+  // String'e çevirerek karşılaştır
+  const searchId = String(id);
   for (let i = 1; i < allData.length; i++) {
-    if (allData[i][0] === id) {
+    if (String(allData[i][0]) === searchId) {
       rowIndex = i + 1;
       break;
     }
@@ -440,9 +462,10 @@ function updatePersonnelNameInLeaves(personnelId, newName, newDepartment) {
   if (!sheet) return;
   
   const allData = sheet.getDataRange().getValues();
+  const searchId = String(personnelId);
   
   for (let i = 1; i < allData.length; i++) {
-    if (allData[i][1] === personnelId) {
+    if (String(allData[i][1]) === searchId) {
       sheet.getRange(i + 1, 3).setValue(newName);
       sheet.getRange(i + 1, 4).setValue(newDepartment);
     }
@@ -456,10 +479,11 @@ function deleteLeavesByPersonnelId(personnelId) {
   if (!sheet) return;
   
   const allData = sheet.getDataRange().getValues();
+  const searchId = String(personnelId);
   
   // Ters sırada sil (index kayması olmaması için)
   for (let i = allData.length - 1; i >= 1; i--) {
-    if (allData[i][1] === personnelId) {
+    if (String(allData[i][1]) === searchId) {
       sheet.deleteRow(i + 1);
     }
   }

@@ -1180,9 +1180,11 @@ function initLeaveForm() {
     const personnelSelect = document.getElementById('leave-personnel');
     const typeSelect = document.getElementById('leave-type');
 
-    // Populate selects
+    // Populate selects - sadece sunucuyla senkronize olan personelleri göster
+    // temp- ile başlayan ID'ler henüz sunucuya eklenmemiş, bunları filtrele
+    const syncedPersonnel = personnel.filter(p => !String(p.id).startsWith('temp-'));
     personnelSelect.innerHTML = '<option value="">Personel seçin</option>' +
-        personnel.map(p => `<option value="${p.id}">${p.name} (${p.department})</option>`).join('');
+        syncedPersonnel.map(p => `<option value="${p.id}">${p.name} (${p.department})</option>`).join('');
 
     typeSelect.innerHTML = '<option value="">İzin türü seçin</option>' +
         leaveTypes.map(t => `<option value="${t}">${t}</option>`).join('');
@@ -1233,6 +1235,18 @@ function initLeaveForm() {
             createdAt: new Date().toISOString()
         };
 
+        // Personel seçimi validasyonu
+        if (!data.personnelId) {
+            showToast('Lütfen bir personel seçin', 'error');
+            return;
+        }
+
+        // Henüz sunucuya senkronize olmamış personel seçilmiş mi kontrol et
+        if (String(data.personnelId).startsWith('temp-')) {
+            showToast('Bu personel henüz kaydedilmedi, lütfen birkaç saniye bekleyip tekrar deneyin', 'error');
+            return;
+        }
+
         if (new Date(data.endDate) < new Date(data.startDate)) {
             showToast('Bitiş tarihi başlangıç tarihinden önce olamaz', 'error');
             return;
@@ -1259,8 +1273,19 @@ function initLeaveForm() {
         showToast('İzin başarıyla eklendi');
 
         // BACKGROUND SYNC - sunucudan gerçek ID'yi al
+        // API'ye gönderilecek data'nın bir kopyasını oluştur (form.reset() sonrası data bozulmaması için)
+        const apiData = {
+            personnelId: data.personnelId,
+            type: data.type,
+            startDate: data.startDate,
+            endDate: data.endDate,
+            note: data.note
+        };
+
+        console.log('API\'ye gönderilen izin verisi:', apiData);
+
         try {
-            const result = await apiPost('addLeave', data);
+            const result = await apiPost('addLeave', apiData);
             // Geçici ID'yi sunucudan gelen gerçek ID ile değiştir
             const index = leaves.findIndex(l => l.id === tempId);
             if (index !== -1 && result.data && result.data.id) {
@@ -1287,8 +1312,10 @@ function initEditLeaveForm() {
     const editPersonnelSelect = document.getElementById('edit-leave-personnel');
     const editTypeSelect = document.getElementById('edit-leave-type');
 
+    // temp- ile başlayan ID'ler henüz sunucuya eklenmemiş, bunları filtrele
+    const syncedPersonnel = personnel.filter(p => !String(p.id).startsWith('temp-'));
     editPersonnelSelect.innerHTML = '<option value="">Personel seçin</option>' +
-        personnel.map(p => `<option value="${p.id}">${p.name} (${p.department})</option>`).join('');
+        syncedPersonnel.map(p => `<option value="${p.id}">${p.name} (${p.department})</option>`).join('');
 
     editTypeSelect.innerHTML = '<option value="">İzin türü seçin</option>' +
         leaveTypes.map(t => `<option value="${t}">${t}</option>`).join('');
@@ -1793,11 +1820,13 @@ function openAddLeaveModal() {
     const form = document.getElementById('leave-form');
     if (form) form.reset();
 
-    // Populate personnel select
+    // Populate personnel select - sadece sunucuyla senkronize olan personelleri göster
     const select = document.getElementById('leave-personnel');
     if (select) {
+        // temp- ile başlayan ID'ler henüz sunucuya eklenmemiş, bunları filtrele
+        const syncedPersonnel = personnel.filter(p => !String(p.id).startsWith('temp-'));
         select.innerHTML = '<option value="">Personel Seçin</option>' +
-            personnel.map(p => `<option value="${p.id}">${p.name} (${p.department})</option>`).join('');
+            syncedPersonnel.map(p => `<option value="${p.id}">${p.name} (${p.department})</option>`).join('');
     }
 
     // Populate leave type select
