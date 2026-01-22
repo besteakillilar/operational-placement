@@ -770,6 +770,12 @@ function initPersonnelForm() {
     deptSelect.innerHTML = '<option value="">Departman seçin</option>' +
         departments.map(d => `<option value="${d}">${d}</option>`).join('');
 
+    // Event listener'ların tekrar eklenmesini engelle
+    if (form.dataset.initialized) {
+        return;
+    }
+    form.dataset.initialized = 'true';
+
     // Department change handler
     deptSelect.addEventListener('change', () => updateTaskSelect('personnel-department', 'personnel-task'));
 
@@ -1204,6 +1210,12 @@ function initLeaveForm() {
 
     typeSelect.innerHTML = '<option value="">İzin türü seçin</option>' +
         leaveTypes.map(t => `<option value="${t}">${t}</option>`).join('');
+
+    // Event listener'ların tekrar eklenmesini engelle
+    if (form.dataset.initialized) {
+        return;
+    }
+    form.dataset.initialized = 'true';
 
     // Initialize Flatpickr for date inputs
     const flatpickrConfig = {
