@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Personnel and Leave Management System">
+    <meta name="theme-color" content="#6366f1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="OpPlacement">
+    <title>Operational Placement</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <p>Veriler yükleniyor...</p>
+    </div>
+
+    <!-- Login Page -->
+    <div id="login-page" class="login-page">
+        <div class="login-container">
+            <div class="login-header">
+                <div class="login-logo">
+                    <svg width="48" height="48" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="2" y="2" width="28" height="28" rx="8" stroke="url(#loginGrad)" stroke-width="2" />
+                        <path d="M10 16L14 20L22 12" stroke="url(#loginGrad)" stroke-width="2.5" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                        <defs>
+                            <linearGradient id="loginGrad" x1="2" y1="2" x2="30" y2="30" gradientUnits="userSpaceOnUse">
+                                <stop stop-color="#818cf8" />
+                                <stop offset="1" stop-color="#6366f1" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <h1>Operational Placement</h1>
+                <p>Personel ve İzin Yönetim Sistemi</p>
+            </div>
+            <form id="login-form" class="login-form">
+                <div class="form-group">
+                    <label for="login-email">Email</label>
+                    <input type="email" id="login-email" placeholder="email@ornek.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Şifre</label>
+                    <div class="password-row">
+                        <input type="password" id="login-password" placeholder="••••••••" required>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="remember-me">
+                            <span class="checkbox-custom"></span>
+                            <span>Hatırla</span>
+                        </label>
+                    </div>
+                </div>
+                <div id="login-error" class="login-error"></div>
+                <button type="submit" class="btn btn-primary btn-login">
+                    <span>Giriş Yap</span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                        <polyline points="10 17 15 12 10 7" />
+                        <line x1="15" y1="12" x2="3" y2="12" />
+                    </svg>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main App Container (hidden until login) -->
+    <div id="app-container" class="app-container hidden">
+        <nav class="navbar">
+            <div class="navbar-container">
+                <div class="navbar-brand">
+                    <div class="brand-logo">
+                        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="2" y="2" width="28" height="28" rx="8" stroke="url(#brandGrad)" stroke-width="2" />
+                            <path d="M10 16L14 20L22 12" stroke="url(#brandGrad)" stroke-width="2.5"
+                                stroke-linecap="round" stroke-linejoin="round" />
+                            <defs>
+                                <linearGradient id="brandGrad" x1="2" y1="2" x2="30" y2="30"
+                                    gradientUnits="userSpaceOnUse">
+                                    <stop stop-color="#818cf8" />
+                                    <stop offset="1" stop-color="#6366f1" />
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                    </div>
+                    <span class="brand-text">Operational Placement</span>
+                </div>
+                <div class="navbar-menu">
+                    <button class="nav-item active" data-page="dashboard">
+                        <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="7" height="9" rx="1" />
+                            <rect x="14" y="3" width="7" height="5" rx="1" />
+                            <rect x="14" y="12" width="7" height="9" rx="1" />
+                            <rect x="3" y="16" width="7" height="5" rx="1" />
+                        </svg>
+                        <span>Dashboard</span>
+                    </button>
+                    <button class="nav-item" data-page="personeller">
+                        <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                            <circle cx="9" cy="7" r="4" />
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                        </svg>
+                        <span>Personeller</span>
+                    </button>
+                    <button class="nav-item" data-page="izinler">
+                        <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                            <line x1="16" y1="2" x2="16" y2="6" />
+                            <line x1="8" y1="2" x2="8" y2="6" />
+                            <line x1="3" y1="10" x2="21" y2="10" />
+                        </svg>
+                        <span>İzinler</span>
+                    </button>
+                    <button class="nav-item" data-page="raporlar">
+                        <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="20" x2="18" y2="10" />
+                            <line x1="12" y1="20" x2="12" y2="4" />
+                            <line x1="6" y1="20" x2="6" y2="14" />
+                        </svg>
+                        <span>Raporlar</span>
+                    </button>
+                </div>
+                <div class="navbar-right">
+                    <div class="navbar-date" id="current-date">
+                        <svg class="date-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                            <line x1="16" y1="2" x2="16" y2="6" />
+                            <line x1="8" y1="2" x2="8" y2="6" />
+                            <line x1="3" y1="10" x2="21" y2="10" />
+                        </svg>
+                        <span id="date-text"></span>
+                    </div>
+                    <div class="user-menu">
+                        <button class="user-menu-btn" id="user-menu-btn">
+                            <div class="user-avatar" id="user-avatar">A</div>
+                            <span class="user-name" id="user-name">Admin</span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polyline points="6 9 12 15 18 9" />
+                            </svg>
+                        </button>
+                        <div class="user-dropdown" id="user-dropdown">
+                            <button class="dropdown-item" onclick="handleLogout()">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                                    <polyline points="16 17 21 12 16 7" />
+                                    <line x1="21" y1="12" x2="9" y2="12" />
+                                </svg>
+                                <span>Çıkış Yap</span>
+                            </button>
+                        </div>
+                    </div>
+                    <button class="theme-toggle" id="theme-toggle" title="Tema Değiştir">
+                        <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="5" />
+                            <line x1="12" y1="1" x2="12" y2="3" />
+                            <line x1="12" y1="21" x2="12" y2="23" />
+                            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                            <line x1="1" y1="12" x2="3" y2="12" />
+                            <line x1="21" y1="12" x2="23" y2="12" />
+                            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+                            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+                        </svg>
+                        <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="navbar-gradient-line"></div>
+        </nav>
+
+        <main class="main-content">
+            <section id="dashboard-page" class="page active"></section>
+            <section id="personeller-page" class="page"></section>
+            <section id="izinler-page" class="page"></section>
+            <section id="raporlar-page" class="page"></section>
+        </main>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <!-- Add Personnel Modal -->
+    <div id="add-personnel-modal" class="modal">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3>Yeni Personel Ekle</h3>
+                <button class="modal-close" onclick="closeModal('add-personnel-modal')">✕</button>
+            </div>
+            <form id="personnel-form" class="form">
+                <div class="form-group">
+                    <label for="personnel-name">Ad Soyad</label>
+                    <input type="text" id="personnel-name" placeholder="Personel adı ve soyadı" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="personnel-department">Departman</label>
+                        <select id="personnel-department" required></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="personnel-task">Görev</label>
+                        <select id="personnel-task" required>
+                            <option value="">Önce departman seçin</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="personnel-note">Not <span class="optional-label">(Opsiyonel)</span></label>
+                    <textarea id="personnel-note" placeholder="Denemede, veri girişi vb. açıklama..."
+                        rows="2"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary"
+                        onclick="closeModal('add-personnel-modal')">İptal</button>
+                    <button type="submit" class="btn btn-primary">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19" />
+                            <line x1="5" y1="12" x2="19" y2="12" />
+                        </svg>
+                        <span>Personel Ekle</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Personnel List Modal (for stat cards) -->
+    <div id="personnel-list-modal" class="modal">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <div class="modal-title-group">
+                    <h3 id="personnel-list-modal-title">Personel Listesi</h3>
+                    <span class="modal-count-badge" id="personnel-list-modal-count">0 kişi</span>
+                </div>
+                <button class="modal-close" onclick="closeModal('personnel-list-modal')">✕</button>
+            </div>
+            <div class="modal-body" id="personnel-list-modal-body">
+                <!-- Dynamic content will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Personnel Modal -->
+    <div id="edit-personnel-modal" class="modal">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3>Personel Düzenle</h3>
+                <button class="modal-close" onclick="closeModal('edit-personnel-modal')">✕</button>
+            </div>
+            <form id="edit-personnel-form" class="form">
+                <input type="hidden" id="edit-personnel-id">
+                <div class="form-group">
+                    <label for="edit-personnel-name">Ad Soyad</label>
+                    <input type="text" id="edit-personnel-name" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit-personnel-department">Departman</label>
+                        <select id="edit-personnel-department" required></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-personnel-task">Görev</label>
+                        <select id="edit-personnel-task" required></select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="edit-personnel-note">Not <span class="optional-label">(Opsiyonel)</span></label>
+                    <textarea id="edit-personnel-note" placeholder="Denemede, veri girişi vb. açıklama..."
+                        rows="2"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary"
+                        onclick="closeModal('edit-personnel-modal')">İptal</button>
+                    <button type="submit" class="btn btn-primary">💾 Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Leave Modal -->
+    <div id="add-leave-modal" class="modal">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3>Yeni İzin Ekle</h3>
+                <button class="modal-close" onclick="closeModal('add-leave-modal')">✕</button>
+            </div>
+            <form id="leave-form" class="form">
+                <div class="form-group">
+                    <label for="leave-personnel">Personel</label>
+                    <select id="leave-personnel" required></select>
+                </div>
+                <div class="form-group">
+                    <label for="leave-type">İzin Türü</label>
+                    <select id="leave-type" required></select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="leave-start">Başlangıç Tarihi</label>
+                        <input type="date" id="leave-start" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="leave-end">Bitiş Tarihi</label>
+                        <input type="date" id="leave-end" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="leave-note">Açıklama</label>
+                    <textarea id="leave-note" placeholder="İzin açıklaması..." rows="3"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary"
+                        onclick="closeModal('add-leave-modal')">İptal</button>
+                    <button type="submit" class="btn btn-primary">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19" />
+                            <line x1="5" y1="12" x2="19" y2="12" />
+                        </svg>
+                        <span>İzin Ekle</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div id="edit-leave-modal" class="modal">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3>İzin Düzenle</h3>
+                <button class="modal-close" onclick="closeModal('edit-leave-modal')">✕</button>
+            </div>
+            <form id="edit-leave-form" class="form">
+                <input type="hidden" id="edit-leave-id">
+                <div class="form-group">
+                    <label for="edit-leave-personnel">Personel</label>
+                    <select id="edit-leave-personnel" required></select>
+                </div>
+                <div class="form-group">
+                    <label for="edit-leave-type">İzin Türü</label>
+                    <select id="edit-leave-type" required></select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit-leave-start">Başlangıç</label>
+                        <input type="date" id="edit-leave-start" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-leave-end">Bitiş</label>
+                        <input type="date" id="edit-leave-end" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="edit-leave-note">Açıklama</label>
+                    <textarea id="edit-leave-note" rows="3"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary"
+                        onclick="closeModal('edit-leave-modal')">İptal</button>
+                    <button type="submit" class="btn btn-primary">💾 Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-icon danger">⚠️</div>
+            <h3>Silme Onayı</h3>
+            <p id="delete-modal-text">Bu kaydı silmek istediğinize emin misiniz?</p>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal('delete-modal')">İptal</button>
+                <button class="btn btn-danger" id="confirm-delete">🗑️ Sil</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leave Detail Modal -->
+    <div id="leave-detail-modal" class="modal">
+        <div class="modal-content modal-lg leave-detail-modal">
+            <div class="modal-header">
+                <h3>İzin Detayları</h3>
+                <button class="modal-close" onclick="closeModal('leave-detail-modal')">✕</button>
+            </div>
+            <div class="leave-detail-content">
+                <div class="leave-detail-avatar" id="leave-detail-avatar">AB</div>
+                <div class="leave-detail-name" id="leave-detail-name">Personel Adı</div>
+                <div class="leave-detail-department" id="leave-detail-department">Departman</div>
+
+                <div class="leave-detail-info">
+                    <div class="leave-detail-row">
+                        <span class="leave-detail-label">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                            </svg>
+                            İzin Türü
+                        </span>
+                        <span class="leave-detail-value leave-type-badge" id="leave-detail-type">Yıllık İzinli</span>
+                    </div>
+                    <div class="leave-detail-row" id="leave-detail-dates-row">
+                        <span class="leave-detail-label">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                                <line x1="16" y1="2" x2="16" y2="6" />
+                                <line x1="8" y1="2" x2="8" y2="6" />
+                                <line x1="3" y1="10" x2="21" y2="10" />
+                            </svg>
+                            Tarih Aralığı
+                        </span>
+                        <span class="leave-detail-value" id="leave-detail-dates">20.01.2026 - 22.01.2026</span>
+                    </div>
+                    <div class="leave-detail-row" id="leave-detail-duration-row">
+                        <span class="leave-detail-label">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <circle cx="12" cy="12" r="10" />
+                                <polyline points="12 6 12 12 16 14" />
+                            </svg>
+                            Süre
+                        </span>
+                        <span class="leave-detail-value leave-duration-badge" id="leave-detail-duration">3 Gün</span>
+                    </div>
+                </div>
+
+                <div class="leave-detail-note-section" id="leave-detail-note-section">
+                    <div class="leave-detail-note-label">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                            <line x1="16" y1="13" x2="8" y2="13" />
+                            <line x1="16" y1="17" x2="8" y2="17" />
+                        </svg>
+                        Açıklama
+                    </div>
+                    <div class="leave-detail-note" id="leave-detail-note">Açıklama burada görünecek...</div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="closeModal('leave-detail-modal')">Tamam</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Group Personnel Modal -->
+    <div id="group-personnel-modal" class="modal">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3 id="group-modal-title">Personel Listesi</h3>
+                <button class="modal-close" onclick="closeModal('group-personnel-modal')">✕</button>
+            </div>
+            <div class="group-modal-content">
+                <div class="group-modal-stats">
+                    <div class="group-modal-stat present">
+                        <span class="stat-icon">✅</span>
+                        <span class="stat-value" id="group-modal-present">0</span>
+                        <span class="stat-label">Çalışan</span>
+                    </div>
+                    <div class="group-modal-stat leave">
+                        <span class="stat-icon">📅</span>
+                        <span class="stat-value" id="group-modal-leave">0</span>
+                        <span class="stat-label">İzinli</span>
+                    </div>
+                </div>
+                <div class="group-personnel-list" id="group-personnel-list">
+                    <!-- Personel listesi buraya gelecek -->
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="closeModal('group-personnel-modal')">Tamam</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Needed Personnel Modal -->
+    <div id="needed-personnel-modal" class="modal">
+        <div class="modal-content modal-wide">
+            <div class="modal-header">
+                <h3>📦 Gerekli Paketleme Personeli Hesabı</h3>
+                <button class="modal-close" onclick="closeModal('needed-personnel-modal')">✕</button>
+            </div>
+            <div class="needed-modal-content">
+                <div class="needed-summary">
+                    <div class="needed-stat target">
+                        <span class="needed-value">45</span>
+                        <span class="needed-label">Hedef Personel</span>
+                    </div>
+                    <div class="needed-stat current">
+                        <span class="needed-value" id="needed-current">0</span>
+                        <span class="needed-label">Toplam Paketleme</span>
+                    </div>
+                    <div class="needed-stat result">
+                        <span class="needed-value" id="needed-result">0</span>
+                        <span class="needed-label">Gerekli Yeni Personel</span>
+                    </div>
+                </div>
+
+                <div class="needed-breakdown">
+                    <h4>📊 İhtiyaç Dağılımı (45 Kişi)</h4>
+                    <div class="breakdown-grid">
+                        <div class="breakdown-row"><span>Makine 1</span><span>6</span></div>
+                        <div class="breakdown-row"><span>Makine 2</span><span>4</span></div>
+                        <div class="breakdown-row"><span>Makine 3</span><span>6</span></div>
+                        <div class="breakdown-row"><span>Makine 4</span><span>6</span></div>
+                        <div class="breakdown-row"><span>Makine 5</span><span>6</span></div>
+                        <div class="breakdown-row"><span>Elle Paketleme</span><span>10</span></div>
+                        <div class="breakdown-row"><span>Numune</span><span>2</span></div>
+                        <div class="breakdown-row"><span>Kalite Kontrol</span><span>2</span></div>
+                        <div class="breakdown-row"><span>Yedek</span><span>3</span></div>
+                        <div class="breakdown-row total"><span>TOPLAM</span><span>45</span></div>
+                    </div>
+                </div>
+
+                <div class="needed-formula">
+                    <strong>Hesaplama:</strong> 45 (Hedef) - <span id="needed-active-text">0</span> (Toplam Paketleme) =
+                    <span id="needed-result-text">0</span> (Gerekli Yeni Personel)
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="closeModal('needed-personnel-modal')">Tamam</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/tr.js"></script>
+    <script src="app.js"></script>
+    <script>
+        // Register Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('Service Worker registered:', reg.scope))
+                    .catch(err => console.log('Service Worker registration failed:', err));
+            });
+        }
+    </script>
+</body>
+
+</html>
