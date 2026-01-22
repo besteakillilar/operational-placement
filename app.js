@@ -787,6 +787,20 @@ function initPersonnelForm() {
             createdAt: new Date().toISOString()
         };
 
+        // Frontend validasyon
+        if (!data.name || !data.name.trim()) {
+            showToast('Lütfen personel adı girin', 'error');
+            return;
+        }
+
+        // API'ye gönderilecek data'nın bir kopyasını oluştur (form.reset() sonrası data bozulmaması için)
+        const apiData = {
+            name: data.name.trim(),
+            department: data.department,
+            task: data.task,
+            note: data.note
+        };
+
         // OPTIMISTIC UI - geçici ID ile göster
         const tempData = { ...data, id: tempId };
         personnel.push(tempData);
@@ -800,8 +814,10 @@ function initPersonnelForm() {
         showToast('Personel başarıyla eklendi');
 
         // BACKGROUND SYNC - sunucudan gerçek ID'yi al
+        console.log('API\'ye gönderilen personel verisi:', apiData);
+
         try {
-            const result = await apiPost('addPersonnel', data);
+            const result = await apiPost('addPersonnel', apiData);
             // Geçici ID'yi sunucudan gelen gerçek ID ile değiştir
             const index = personnel.findIndex(p => p.id === tempId);
             if (index !== -1 && result.data && result.data.id) {
