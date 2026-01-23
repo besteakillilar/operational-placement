@@ -2482,19 +2482,15 @@ function updateLeaveStats() {
         return p && p.department === 'Paketleme';
     }).length;
 
+
     const balonCount = activeLeaves.filter(l => {
         const p = personnel.find(per => per.id === l.personnelId);
         return p && (p.department && p.department.includes('Balon'));
     }).length;
 
-    const absentCount = activeLeaves.filter(l => l.type === 'Mazeretsiz Gelmedi').length;
-
     // Update numbers if elements exist
     const totalEl = document.getElementById('leave-stat-total');
     if (totalEl) totalEl.textContent = totalCount;
-
-    const absentEl = document.getElementById('leave-stat-absent');
-    if (absentEl) absentEl.textContent = absentCount;
 
     const paketlemeEl = document.getElementById('leave-stat-paketleme');
     if (paketlemeEl) paketlemeEl.textContent = paketlemeCount;
@@ -2567,21 +2563,6 @@ function renderLeavePage() {
                 <div class="stat-content">
                     <span class="stat-value" id="leave-stat-total">0</span>
                     <span class="stat-label">Toplam İzinli</span>
-                </div>
-            </div>
-
-            <!-- Devamsızlık Leave -->
-            <div class="stat-card stat-absent" style="position: relative; cursor: pointer;" onclick="showPersonnelListModal('leave-absent', 'Devamsızlık Yapan Personel')">
-                <div class="view-icon-corner">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                        <circle cx="12" cy="12" r="3"></circle>
-                    </svg>
-                </div>
-                <div class="stat-icon">❌</div>
-                <div class="stat-content">
-                    <span class="stat-value" id="leave-stat-absent">0</span>
-                    <span class="stat-label">Devamsızlık</span>
                 </div>
             </div>
 
