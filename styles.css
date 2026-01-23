@@ -524,13 +524,27 @@ body {
 }
 
 /* Stats Grid */
+/* Stats Grid - Desktop Default (6 Columns) */
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    grid-template-columns: repeat(6, 1fr);
     gap: 20px;
     margin-bottom: 32px;
 }
 
+/* Row 1: 3 cards taking 2 cols each (Total 6) */
+.stat-card.stat-total,
+.stat-card.stat-present,
+.stat-card.stat-leave {
+    grid-column: span 2;
+}
+
+/* Row 2: 2 cards taking 3 cols each (Total 6) */
+.stat-card.stat-needed {
+    grid-column: span 3;
+}
+
+/* Common Card Styles */
 .stat-card {
     background: var(--bg-card);
     border-radius: var(--radius-lg);
@@ -1416,6 +1430,12 @@ tr:hover td {
     color: var(--text-muted);
 }
 
+/* Modal Scroll Fix */
+.modal-content {
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
 /* Report Summary Grid */
 .report-summary {
     display: grid;
@@ -1808,15 +1828,20 @@ tr:hover td {
         display: none;
     }
 
-    /* Stats Grid Tablet Adjustment - Now 2x2 for 4 items */
+    /* Stats Grid Tablet Adjustment - Override Desktop 6-col */
     .stats-grid {
         grid-template-columns: 1fr 1fr;
         gap: 16px;
     }
 
+    /* Reset all spans first */
+    .stats-grid .stat-card {
+        grid-column: auto !important;
+    }
+
+    /* Total can take full width on tablet */
     .stats-grid .stat-card.stat-total {
-        grid-column: auto;
-        /* Allow it to fit into the 2x2 grid naturally */
+        grid-column: 1 / -1 !important;
     }
 
     .form-row {
@@ -1830,18 +1855,23 @@ tr:hover td {
 
 @media (max-width: 640px) {
 
-    /* Mobile Constraints - Dashboard (2x2 Grid) */
+    /* Mobile Constraints - Dashboard */
     .stats-grid {
         grid-template-columns: 1fr 1fr !important;
         gap: 12px;
     }
 
-    /* Reset span for Dashboard - Just simple 2x2 */
-    .stats-grid .stat-card:first-child,
-    .stats-grid .dashboard-card:first-child,
-    .stats-grid .stat-card.stat-total {
+    /* Reset spans */
+    .stats-grid .stat-card {
         grid-column: auto !important;
     }
+
+    /* Total Card: Full Width */
+    .stat-card.stat-total {
+        grid-column: 1 / -1 !important;
+    }
+
+    /* Others are auto (side-by-side) by default now */
 
     .group-modal-stats {
         flex-direction: column;

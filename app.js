@@ -524,6 +524,42 @@ function updateCurrentDate() {
 // ==================== DASHBOARD ====================
 let currentDistributionView = 'department';
 
+// ==================== NEEDED PERSONNEL HELPERS ====================
+const defaultTargets = {
+    'Paketleme': {
+        'Makine 1': 6, 'Makine 2': 4, 'Makine 3': 6, 'Makine 4': 6, 'Makine 5': 6,
+        'Elle Paketleme': 10, 'Numune': 2, 'Kalite Kontrol': 2, 'Yedek': 3
+    },
+    'Balon': {
+        'Stok': 2, 'Sevkiyat': 3, 'Tedarik': 2, 'Dolum': 2, 'Hazırlık': 2
+    }
+};
+
+function getTargetSettings() {
+    const stored = localStorage.getItem('targetSettings');
+    return stored ? JSON.parse(stored) : defaultTargets;
+}
+
+function saveTargetSettings(settings) {
+    localStorage.setItem('targetSettings', JSON.stringify(settings));
+}
+
+function calculateNeeded(dept) {
+    const settings = getTargetSettings();
+    const targets = settings[dept] || {};
+    const totalTarget = Object.values(targets).reduce((sum, val) => sum + (parseInt(val) || 0), 0);
+
+    const activePersonnel = personnel.filter(p => !p.archived);
+    const deptPersonnel = activePersonnel.filter(p => {
+        if (dept === 'Paketleme') return p.department === 'Paketleme';
+        if (dept === 'Balon') return p.department && p.department.includes('Balon');
+        return false;
+    });
+
+    const totalCurrent = deptPersonnel.length;
+    return Math.max(0, totalTarget - totalCurrent);
+}
+
 function updateDashboard() {
     const today = getToday();
 
@@ -536,25 +572,23 @@ function updateDashboard() {
     const onLeaveCount = onLeaveIds.length;
     const presentCount = totalPersonnel - onLeaveCount;
 
-    // Calculate needed packaging personnel
-    // Hedef: 45 kişi (Makine1:6, Makine2:4, Makine3:6, Makine4:6, Makine5:6, Elle:10, Numune:2, Kalite:2, Yedek:3)
-    const REQUIRED_PACKAGING = 45;
-    const paketlemePersonnel = personnel.filter(p => p.department === 'Paketleme');
-    const totalPaketleme = paketlemePersonnel.length;
-    const neededPersonnel = Math.max(0, REQUIRED_PACKAGING - totalPaketleme);
+    // Calculate needed personnel using dynamic targets
+    const neededPaketleme = calculateNeeded('Paketleme');
+    const neededBalon = calculateNeeded('Balon');
 
     document.getElementById('total-personnel').textContent = totalPersonnel;
     document.getElementById('present-personnel').textContent = presentCount;
     document.getElementById('on-leave-personnel').textContent = onLeaveCount;
-    document.getElementById('needed-personnel').textContent = neededPersonnel;
 
-    // Render distribution based on current view
+    const neededEl = document.getElementById('needed-personnel');
+    if (neededEl) neededEl.textContent = neededPaketleme;
+
+    const neededBalonEl = document.getElementById('needed-balon');
+    if (neededBalonEl) neededBalonEl.textContent = neededBalon;
+
+    // Render distribution
     renderDistribution(currentDistributionView, onLeaveIds);
-
-    // Today's leaves list
     renderTodayLeaves(todayLeaves);
-
-    // Setup toggle buttons
     setupDistributionToggle(onLeaveIds);
 }
 
@@ -807,19 +841,99 @@ function showGroupPersonnelModal(type, value) {
 }
 
 // Gerekli personel modalını göster
-function showNeededPersonnelModal() {
-    const REQUIRED_PACKAGING = 45;
+function showNeededPersonnelModal(dept) {
+    const settings = getTargetSettings();
+    let targets = settings[dept] || {};
 
-    // Paketleme departmanındaki toplam personel sayısı
-    const paketlemePersonnel = personnel.filter(p => p.department === 'Paketleme');
-    const totalPaketleme = paketlemePersonnel.length;
-    const neededPersonnel = Math.max(0, REQUIRED_PACKAGING - totalPaketleme);
+    const totalTarget = Object.values(targets).reduce((sum, val) => sum + (parseInt(val) || 0), 0);
 
-    // Modal değerlerini güncelle
-    document.getElementById('needed-current').textContent = totalPaketleme;
-    document.getElementById('needed-result').textContent = neededPersonnel;
-    document.getElementById('needed-active-text').textContent = totalPaketleme;
-    document.getElementById('needed-result-text').textContent = neededPersonnel;
+    // Calculate current active
+    const activePersonnel = personnel.filter(p => !p.archived);
+    const deptPersonnel = activePersonnel.filter(p => {
+        if (dept === 'Paketleme') return p.department === 'Paketleme';
+        if (dept === 'Balon') return p.department && p.department.includes('Balon');
+        return false;
+    });
+    const totalCurrent = deptPersonnel.length;
+    const needed = Math.max(0, totalTarget - totalCurrent);
+
+    // Update Modal
+    const modalTitle = dept === 'Paketleme' ? '📦 Gerekli Paketleme Personeli' : '🎈 Gerekli Balon Tedarik Personeli';
+    const modalHeader = document.querySelector('#needed-personnel-modal h3');
+    if (modalHeader) modalHeader.textContent = modalTitle;
+
+    document.getElementById('needed-current').textContent = totalCurrent;
+    document.getElementById('needed-result').textContent = needed;
+
+    const targetValEl = document.querySelector('.needed-stat.target .needed-value');
+    if (targetValEl) targetValEl.textContent = totalTarget;
+
+    document.getElementById('needed-active-text').textContent = totalCurrent;
+    document.getElementById('needed-result-text').textContent = needed;
+
+    // Editable Breakdown
+    const breakdownContainer = document.querySelector('.needed-breakdown');
+    breakdownContainer.innerHTML = `<h4>📊 İhtiyaç Dağılımı (<span id="breakdown-header-total">${totalTarget}</span> Kişi)</h4><div class="breakdown-grid" id="breakdown-grid"></div>`;
+
+    const grid = document.getElementById('breakdown-grid');
+
+    for (const [key, value] of Object.entries(targets)) {
+        const row = document.createElement('div');
+        row.className = 'breakdown-row';
+        row.style.display = 'flex';
+        row.style.justifyContent = 'space-between';
+        row.style.alignItems = 'center';
+        row.style.marginBottom = '8px';
+
+        row.innerHTML = `
+            <span>${key}</span>
+            <input type="number" class="target-input" data-key="${key}" value="${value}" min="0" 
+            style="width: 70px; padding: 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-input); color: var(--text-primary); text-align: center;">
+        `;
+        grid.appendChild(row);
+    }
+
+    // Add Save Button if not exists
+    const modalActions = document.querySelector('#needed-personnel-modal .modal-actions');
+    modalActions.innerHTML = `
+        <button class="btn btn-secondary" onclick="closeModal('needed-personnel-modal')">İptal</button>
+        <button class="btn btn-primary" id="save-needed-btn">Kaydet</button>
+    `;
+
+    // Event Listeners
+    const inputs = grid.querySelectorAll('.target-input');
+
+    // Live calc
+    inputs.forEach(input => {
+        input.addEventListener('input', () => {
+            let newTotal = 0;
+            inputs.forEach(i => newTotal += (parseInt(i.value) || 0));
+
+            // Update UI
+            if (document.getElementById('breakdown-header-total'))
+                document.getElementById('breakdown-header-total').textContent = newTotal;
+            if (targetValEl) targetValEl.textContent = newTotal;
+
+            const newNeeded = Math.max(0, newTotal - totalCurrent);
+            document.getElementById('needed-result').textContent = newNeeded;
+            document.getElementById('needed-result-text').textContent = newNeeded;
+        });
+    });
+
+    document.getElementById('save-needed-btn').onclick = () => {
+        const newTargets = {};
+        inputs.forEach(i => {
+            newTargets[i.dataset.key] = parseInt(i.value) || 0;
+        });
+
+        const currentSettings = getTargetSettings();
+        currentSettings[dept] = newTargets;
+        saveTargetSettings(currentSettings);
+
+        updateDashboard();
+        closeModal('needed-personnel-modal');
+        showToast('Hedefler ve ihtiyaçlar güncellendi');
+    };
 
     openModal('needed-personnel-modal');
 }
@@ -2059,7 +2173,7 @@ function renderDashboardPage() {
                     <span class="stat-label">İzinli Personel</span>
                 </div>
             </div>
-            <div class="stat-card stat-needed" onclick="showNeededPersonnelModal()">
+            <div class="stat-card stat-needed" onclick="showNeededPersonnelModal('Paketleme')">
                 <div class="view-icon-corner">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
@@ -2070,6 +2184,19 @@ function renderDashboardPage() {
                 <div class="stat-content">
                     <span class="stat-value" id="needed-personnel">0</span>
                     <span class="stat-label">Gerekli Paketleme Personeli</span>
+                </div>
+            </div>
+            <div class="stat-card stat-needed" onclick="showNeededPersonnelModal('Balon')">
+                <div class="view-icon-corner">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                </div>
+                <div class="stat-icon">🎈</div>
+                <div class="stat-content">
+                    <span class="stat-value" id="needed-balon">0</span>
+                    <span class="stat-label">Gerekli Balon Tedarik Personeli</span>
                 </div>
             </div>
         </div>
