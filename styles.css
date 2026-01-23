@@ -1924,7 +1924,9 @@ tr:hover td {
         gap: 12px;
     }
 
-    .leave-stats-grid .stat-card:first-child {
+    /* Force all cards to be 1x1 in these grids */
+    .personnel-stats-grid .stat-card,
+    .leave-stats-grid .stat-card {
         grid-column: auto !important;
     }
 
