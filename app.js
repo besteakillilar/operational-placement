@@ -2070,16 +2070,27 @@ document.getElementById('confirm-delete').addEventListener('click', () => {
 // ==================== REPORTS ====================
 // ==================== REPORTS ====================
 function initReports() {
-    const personnelSelect = document.getElementById('report-personnel');
+    const monthSelect = document.getElementById('report-month');
     const typeSelect = document.getElementById('report-type');
 
-    if (!personnelSelect || !typeSelect) return;
+    if (!document.getElementById('report-personnel-container') || !typeSelect) return;
 
-    // Arşivlenmemiş personelleri filtrele
-    const activePersonnel = personnel.filter(p => !p.archived);
+    // Personnel Dropdown - uses utils/searchableDropdown logic explicitly or reuses function
+    // Assuming createSearchableDropdown exists and works.
+    createSearchableDropdown('report-personnel-container', 'report-personnel',
+        [{ id: '', name: 'Tüm Personeller' }, ...personnel.filter(p => !p.archived)],
+        'Tüm Personeller'
+    );
 
-    personnelSelect.innerHTML = '<option value="">Tüm Personeller</option>' +
-        activePersonnel.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+    // Populate Months
+    const months = [
+        'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+        'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
+    ];
+    if (monthSelect) {
+        monthSelect.innerHTML = '<option value="">Tümü</option>' +
+            months.map((m, i) => `<option value="${i + 1}">${m}</option>`).join('');
+    }
 
     typeSelect.innerHTML = '<option value="">Tüm Türler</option>' +
         leaveTypes.map(t => `<option value="${t}">${t}</option>`).join('');
@@ -2089,29 +2100,51 @@ function initReports() {
 
 function generateReport() {
     const personnelId = document.getElementById('report-personnel').value;
-    const year = document.getElementById('report-year').value;
+    const month = document.getElementById('report-month').value;
     const type = document.getElementById('report-type').value;
 
     let filtered = leaves.filter(l => {
-        const leaveYear = new Date(l.startDate).getFullYear().toString();
+        const leaveDate = new Date(l.startDate);
+        const leaveMonth = (leaveDate.getMonth() + 1).toString();
+        const leaveYear = leaveDate.getFullYear();
+        const currentYear = new Date().getFullYear();
+
+        // Match selection
         const matchesPersonnel = !personnelId || l.personnelId === personnelId;
-        const matchesYear = leaveYear === year;
+        // Match month logic: if month selected, match month AND must be current year (to make sense) or just ignore year?
+        // User said "replace year with month". Assuming standard reporting for "this year's month".
+        const matchesMonth = !month || (leaveMonth === month && leaveYear === currentYear);
+        // If no month selected, show all history or just this year? Default to "All time" if "All" selected, else specific month of current year.
+
         const matchesType = !type || l.type === type;
-        return matchesPersonnel && matchesYear && matchesType;
+        return matchesPersonnel && matchesMonth && matchesType;
     });
 
     filtered.sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
 
     // Show summary
     const summaryEl = document.getElementById('report-summary');
+    const summaryDaysCard = document.getElementById('summary-card-days');
+    const summaryCountCard = document.getElementById('summary-card-count');
+
     summaryEl.style.display = 'grid';
+
+    // Conditional Display Logic
+    if (personnelId) {
+        // Specific personnel selected -> Show BOTH
+        summaryDaysCard.style.display = 'flex';
+        summaryCountCard.style.display = 'flex';
+    } else {
+        // No personnel (All) -> Show ONLY Total Count
+        summaryDaysCard.style.display = 'none';
+        summaryCountCard.style.display = 'flex';
+    }
 
     const totalDays = filtered.reduce((sum, l) => sum + getDaysDifference(l.startDate, l.endDate), 0);
     const totalCount = filtered.length;
 
     document.getElementById('total-leave-days').textContent = totalDays;
     document.getElementById('total-leave-count').textContent = totalCount;
-
 
     // Render table
     const tbody = document.getElementById('report-table-body');
@@ -2123,8 +2156,6 @@ function generateReport() {
 
     tbody.innerHTML = filtered.map(l => {
         const days = getDaysDifference(l.startDate, l.endDate);
-
-        // Doğum İzni için tarih ve gün gösterme
         const isMaternityLeave = l.type === 'Doğum İzni';
         const startDateDisplay = isMaternityLeave ? '-' : formatDate(l.startDate);
         const endDateDisplay = isMaternityLeave ? '-' : formatDate(l.endDate);
@@ -2524,6 +2555,7 @@ function renderLeavePage() {
     renderLeaveTable();
 }
 
+// ==================== REPORT RENDER ====================
 function renderReportsPage() {
     document.getElementById('raporlar-page').innerHTML = `
         <div class="page-header">
@@ -2533,15 +2565,26 @@ function renderReportsPage() {
         <div class="report-container">
             <div class="report-filters">
                 <div class="filter-group">
-                    <label for="report-personnel">Personel Seçin</label>
-                    <select id="report-personnel"></select>
+                    <label>Personel Seçin</label>
+                    <div id="report-personnel-container" class="searchable-dropdown" style="width: 100%;">
+                        <div class="dropdown-selected" tabindex="0">
+                            <span>Tüm Personeller</span>
+                            <span class="dropdown-arrow">▼</span>
+                        </div>
+                        <div class="dropdown-menu">
+                            <input type="text" class="dropdown-search" placeholder="Personel ara...">
+                            <div class="dropdown-items">
+                                <!-- Items populated via JS -->
+                            </div>
+                        </div>
+                        <input type="hidden" id="report-personnel" value="">
+                    </div>
                 </div>
                 <div class="filter-group">
-                    <label for="report-year">Yıl</label>
-                    <select id="report-year">
-                        <option value="2026">2026</option>
-                        <option value="2025">2025</option>
-                        <option value="2024">2024</option>
+                    <label for="report-month">Ay</label>
+                    <select id="report-month">
+                        <option value="">Tümü</option>
+                        <!-- Populated via JS -->
                     </select>
                 </div>
                 <div class="filter-group">
@@ -2558,14 +2601,14 @@ function renderReportsPage() {
                 </button>
             </div>
             <div class="report-summary" id="report-summary" style="display: none;">
-                <div class="summary-card">
+                <div class="summary-card" id="summary-card-days">
                     <div class="summary-icon blue">📅</div>
                     <div class="summary-content">
                         <span class="summary-value" id="total-leave-days">0</span>
                         <span class="summary-label">Toplam İzin Günü</span>
                     </div>
                 </div>
-                <div class="summary-card">
+                <div class="summary-card" id="summary-card-count">
                     <div class="summary-icon green">📋</div>
                     <div class="summary-content">
                         <span class="summary-value" id="total-leave-count">0</span>
