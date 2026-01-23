@@ -2175,6 +2175,100 @@ function generateReport() {
     }).join('');
 }
 
+// ==================== UTILS: SEARCHABLE DROPDOWN ====================
+function createSearchableDropdown(containerId, inputId, items, defaultText = 'Seçiniz') {
+    const container = document.getElementById(containerId);
+    const hiddenInput = document.getElementById(inputId);
+    if (!container || !hiddenInput) return;
+
+    // Reset container content
+    container.innerHTML = `
+        <div class="dropdown-trigger" tabindex="0">
+            <span class="dropdown-text">${defaultText}</span>
+            <svg width="12" height="12" viewBox="0 0 12 12"><path fill="currentColor" d="M6 8.5L1.5 4h9L6 8.5z"/></svg>
+        </div>
+        <div class="dropdown-menu-custom">
+            <div class="dropdown-search-box">
+                <input type="text" placeholder="Ara..." class="dropdown-search-input">
+            </div>
+            <div class="dropdown-options"></div>
+        </div>
+    `;
+
+    const trigger = container.querySelector('.dropdown-trigger');
+    const menu = container.querySelector('.dropdown-menu-custom');
+    const searchInput = container.querySelector('.dropdown-search-input');
+    const optionsContainer = container.querySelector('.dropdown-options');
+    const textData = container.querySelector('.dropdown-text');
+
+    // Populate Options
+    function renderOptions(filter = '') {
+        optionsContainer.innerHTML = '';
+
+        // Default Option (Clear)
+        const defaultOption = document.createElement('div');
+        defaultOption.className = 'dropdown-option';
+        defaultOption.textContent = defaultText;
+        defaultOption.dataset.value = '';
+        defaultOption.onclick = () => selectOption('', defaultText);
+        optionsContainer.appendChild(defaultOption);
+
+        const filteredItems = items.filter(item => item.name.toLowerCase().includes(filter.toLowerCase()));
+
+        if (filteredItems.length === 0) {
+            const noRes = document.createElement('div');
+            noRes.className = 'dropdown-no-results';
+            noRes.textContent = 'Sonuç bulunamadı';
+            optionsContainer.appendChild(noRes);
+        } else {
+            filteredItems.forEach(item => {
+                const option = document.createElement('div');
+                option.className = 'dropdown-option';
+                option.textContent = item.name;
+                option.dataset.value = item.id;
+                option.onclick = () => selectOption(item.id, item.name);
+                optionsContainer.appendChild(option);
+            });
+        }
+    }
+
+    function selectOption(value, text) {
+        hiddenInput.value = value;
+        textData.textContent = text;
+        menu.classList.remove('active');
+        trigger.classList.remove('active');
+    }
+
+    // Interactions
+    trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isActive = menu.classList.contains('active');
+        // Close others
+        document.querySelectorAll('.dropdown-menu-custom').forEach(m => m.classList.remove('active'));
+        document.querySelectorAll('.dropdown-trigger').forEach(t => t.classList.remove('active'));
+
+        if (!isActive) {
+            menu.classList.add('active');
+            trigger.classList.add('active');
+            searchInput.value = '';
+            renderOptions();
+            searchInput.focus();
+        }
+    });
+
+    searchInput.addEventListener('click', e => e.stopPropagation());
+    searchInput.addEventListener('input', (e) => renderOptions(e.target.value));
+
+    // Close on outside click is handled globally or we add here
+    document.addEventListener('click', (e) => {
+        if (!container.contains(e.target)) {
+            menu.classList.remove('active');
+            trigger.classList.remove('active');
+        }
+    });
+}
+
+// ==================== RENDER PAGE CONTENT ====================
 // ==================== RENDER PAGE CONTENT ====================
 function renderDashboardPage() {
     document.getElementById('dashboard-page').innerHTML = `
@@ -2207,8 +2301,8 @@ function renderDashboardPage() {
             <div class="stat-card stat-needed" onclick="showNeededPersonnelModal('Paketleme')">
                 <div class="view-icon-corner">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
                     </svg>
                 </div>
                 <div class="stat-icon">🔔</div>
@@ -2220,8 +2314,8 @@ function renderDashboardPage() {
             <div class="stat-card stat-needed" onclick="showNeededPersonnelModal('Balon')">
                 <div class="view-icon-corner">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
                     </svg>
                 </div>
                 <div class="stat-icon">🎈</div>
@@ -2428,7 +2522,7 @@ function openAddLeaveModal() {
         } else {
             // Fallback: normal select
             select.innerHTML = '<option value="">Personel Seçin</option>' +
-                syncedPersonnel.map(p => `<option value="${p.id}">${p.name} (${p.department})</option>`).join('');
+                syncedPersonnel.map(p => `< option value = "${p.id}" > ${p.name} (${p.department})</option > `).join('');
         }
     }
 
@@ -2436,7 +2530,7 @@ function openAddLeaveModal() {
     const typeSelect = document.getElementById('leave-type');
     if (typeSelect && typeof leaveTypes !== 'undefined') {
         typeSelect.innerHTML = '<option value="">İzin Türü Seçin</option>' +
-            leaveTypes.map(t => `<option value="${t}">${t}</option>`).join('');
+            leaveTypes.map(t => `< option value = "${t}" > ${t}</option > `).join('');
     }
 
     openModal('add-leave-modal');
@@ -2459,7 +2553,7 @@ function renderLeavePage() {
             </button>
         </div>
 
-        <!-- Leave Stats Cards (Updated with Emojis to match Personel Page) -->
+        < !--Leave Stats Cards(Updated with Emojis to match Personel Page)-->
         <div class="personnel-stats-grid leave-stats-grid" style="margin: 0 auto 24px auto;">
             <!-- Total Leave -->
             <div class="stat-card stat-total" style="position: relative; cursor: pointer;" onclick="showPersonnelListModal('leave', 'Şu An İzinli Personeller')">
@@ -2549,7 +2643,7 @@ function renderLeavePage() {
                 </div>
             </div>
         </div>
-    `;
+        `;
 
     updateLeaveStats();
     renderLeaveTable();
@@ -2558,74 +2652,65 @@ function renderLeavePage() {
 // ==================== REPORT RENDER ====================
 function renderReportsPage() {
     document.getElementById('raporlar-page').innerHTML = `
-        <div class="page-header">
+            < div class="page-header" >
             <h1>Devamsızlık Raporları</h1>
             <p class="page-subtitle">Personel bazlı devamsızlık analizi</p>
-        </div>
-        <div class="report-container">
-            <div class="report-filters">
-                <div class="filter-group">
-                    <label>Personel Seçin</label>
-                    <div id="report-personnel-container" class="searchable-dropdown" style="width: 100%;">
-                        <div class="dropdown-selected" tabindex="0">
-                            <span>Tüm Personeller</span>
-                            <span class="dropdown-arrow">▼</span>
-                        </div>
-                        <div class="dropdown-menu">
-                            <input type="text" class="dropdown-search" placeholder="Personel ara...">
-                            <div class="dropdown-items">
-                                <!-- Items populated via JS -->
-                            </div>
+        </div >
+            <div class="report-container">
+                <div class="report-filters">
+                    <div class="filter-group" style="flex: 2; min-width: 250px;">
+                        <label>Personel Seçin</label>
+                        <div id="report-personnel-container" class="custom-dropdown-wrapper">
+                            <!-- JS injects content here -->
                         </div>
                         <input type="hidden" id="report-personnel" value="">
                     </div>
+                    <div class="filter-group">
+                        <label for="report-month">Ay</label>
+                        <select id="report-month">
+                            <option value="">Tümü</option>
+                            <!-- Populated via JS -->
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="report-type">İzin Türü</label>
+                        <select id="report-type"></select>
+                    </div>
+                    <button id="generate-report" class="btn btn-primary">📊 Rapor Oluştur</button>
+                    <button type="button" class="btn btn-secondary btn-clear-filter" onclick="clearReportFilters()" title="Filtreleri Temizle">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18" />
+                            <line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                        <span>Temizle</span>
+                    </button>
                 </div>
-                <div class="filter-group">
-                    <label for="report-month">Ay</label>
-                    <select id="report-month">
-                        <option value="">Tümü</option>
-                        <!-- Populated via JS -->
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label for="report-type">İzin Türü</label>
-                    <select id="report-type"></select>
-                </div>
-                <button id="generate-report" class="btn btn-primary">📊 Rapor Oluştur</button>
-                <button type="button" class="btn btn-secondary btn-clear-filter" onclick="clearReportFilters()" title="Filtreleri Temizle">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="18" y1="6" x2="6" y2="18"/>
-                        <line x1="6" y1="6" x2="18" y2="18"/>
-                    </svg>
-                    <span>Temizle</span>
-                </button>
-            </div>
-            <div class="report-summary" id="report-summary" style="display: none;">
-                <div class="summary-card" id="summary-card-days">
-                    <div class="summary-icon blue">📅</div>
-                    <div class="summary-content">
-                        <span class="summary-value" id="total-leave-days">0</span>
-                        <span class="summary-label">Toplam İzin Günü</span>
+                <div class="report-summary" id="report-summary" style="display: none;">
+                    <div class="summary-card" id="summary-card-days">
+                        <div class="summary-icon blue">📅</div>
+                        <div class="summary-content">
+                            <span class="summary-value" id="total-leave-days">0</span>
+                            <span class="summary-label">Toplam İzin Günü</span>
+                        </div>
+                    </div>
+                    <div class="summary-card" id="summary-card-count">
+                        <div class="summary-icon green">📋</div>
+                        <div class="summary-content">
+                            <span class="summary-value" id="total-leave-count">0</span>
+                            <span class="summary-label">Toplam İzin Sayısı</span>
+                        </div>
                     </div>
                 </div>
-                <div class="summary-card" id="summary-card-count">
-                    <div class="summary-icon green">📋</div>
-                    <div class="summary-content">
-                        <span class="summary-value" id="total-leave-count">0</span>
-                        <span class="summary-label">Toplam İzin Sayısı</span>
+                <div class="report-table-card">
+                    <div class="card-header"><h2>Devamsızlık Detayları</h2></div>
+                    <div class="table-container">
+                        <table><thead><tr>
+                            <th>Personel</th><th>Departman</th><th>İzin Türü</th><th>Başlangıç</th><th>Bitiş</th><th>Gün Sayısı</th><th>Açıklama</th>
+                        </tr></thead><tbody id="report-table-body"></tbody></table>
                     </div>
                 </div>
             </div>
-            <div class="report-table-card">
-                <div class="card-header"><h2>Devamsızlık Detayları</h2></div>
-                <div class="table-container">
-                    <table><thead><tr>
-                        <th>Personel</th><th>Departman</th><th>İzin Türü</th><th>Başlangıç</th><th>Bitiş</th><th>Gün Sayısı</th><th>Açıklama</th>
-                    </tr></thead><tbody id="report-table-body"></tbody></table>
-                </div>
-            </div>
-        </div>
-    `;
+        `;
 }
 
 // ==================== INIT ====================
@@ -2653,7 +2738,19 @@ async function init() {
     updateDashboard();
     renderPersonnelTable();
     renderLeaveTable();
+
+    // Force Dashboard Active on Load
+    const dashboardNav = document.querySelector('.nav-item[data-page="dashboard"]');
+    if (dashboardNav) {
+        document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+        dashboardNav.classList.add('active');
+
+        document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+        const dashboardPage = document.getElementById('dashboard-page');
+        if (dashboardPage) dashboardPage.classList.add('active');
+    }
 }
+
 
 // ==================== LOGIN SYSTEM ====================
 function checkLoginStatus() {
@@ -2730,7 +2827,7 @@ function initLoginForm() {
                     localStorage.removeItem('savedCredentials');
                 }
 
-                showToast(`Hoş geldiniz, ${currentUser.name}!`, 'success');
+                showToast(`Hoş geldiniz, ${currentUser.name} !`, 'success');
                 showAppContainer();
 
                 // Load app data
