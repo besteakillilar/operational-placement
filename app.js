@@ -297,6 +297,197 @@ function closeModal(modalId) {
     document.getElementById(modalId).classList.remove('active');
 }
 
+// ==================== SEARCHABLE DROPDOWN ====================
+function initSearchablePersonnelDropdown(selectId, personnelList) {
+    const originalSelect = document.getElementById(selectId);
+    if (!originalSelect) return;
+
+    // Eğer zaten wrapper varsa, sadece listeyi güncelle
+    const existingWrapper = originalSelect.closest('.searchable-dropdown-wrapper');
+    if (existingWrapper) {
+        updateSearchableDropdownOptions(selectId, personnelList);
+        return;
+    }
+
+    // Wrapper oluştur
+    const wrapper = document.createElement('div');
+    wrapper.className = 'searchable-dropdown-wrapper';
+    wrapper.setAttribute('data-select-id', selectId);
+
+    // Arama input'u oluştur
+    const searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.className = 'searchable-dropdown-input';
+    searchInput.placeholder = 'Personel ara veya seç...';
+    searchInput.autocomplete = 'off';
+
+    // Dropdown listesi oluştur
+    const dropdownList = document.createElement('div');
+    dropdownList.className = 'searchable-dropdown-list';
+
+    // Original select'i gizle ama form için tut
+    originalSelect.style.display = 'none';
+
+    // Wrapper'ı DOM'a ekle
+    originalSelect.parentNode.insertBefore(wrapper, originalSelect);
+    wrapper.appendChild(searchInput);
+    wrapper.appendChild(dropdownList);
+    wrapper.appendChild(originalSelect);
+
+    // Listeyi doldur
+    updateSearchableDropdownOptions(selectId, personnelList);
+
+    // Event listeners
+    searchInput.addEventListener('focus', () => {
+        dropdownList.classList.add('active');
+        filterDropdownOptions(selectId, searchInput.value);
+    });
+
+    searchInput.addEventListener('input', () => {
+        filterDropdownOptions(selectId, searchInput.value);
+    });
+
+    // Dışarı tıklayınca kapat
+    document.addEventListener('click', (e) => {
+        if (!wrapper.contains(e.target)) {
+            dropdownList.classList.remove('active');
+        }
+    });
+
+    // Keyboard navigation
+    searchInput.addEventListener('keydown', (e) => {
+        const items = dropdownList.querySelectorAll('.searchable-dropdown-item:not(.hidden)');
+        const activeItem = dropdownList.querySelector('.searchable-dropdown-item.highlighted');
+        let currentIndex = Array.from(items).indexOf(activeItem);
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (currentIndex < items.length - 1) {
+                items.forEach(i => i.classList.remove('highlighted'));
+                items[currentIndex + 1].classList.add('highlighted');
+                items[currentIndex + 1].scrollIntoView({ block: 'nearest' });
+            }
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (currentIndex > 0) {
+                items.forEach(i => i.classList.remove('highlighted'));
+                items[currentIndex - 1].classList.add('highlighted');
+                items[currentIndex - 1].scrollIntoView({ block: 'nearest' });
+            }
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (activeItem) {
+                activeItem.click();
+            }
+        } else if (e.key === 'Escape') {
+            dropdownList.classList.remove('active');
+            searchInput.blur();
+        }
+    });
+}
+
+function updateSearchableDropdownOptions(selectId, personnelList) {
+    const wrapper = document.querySelector(`.searchable-dropdown-wrapper[data-select-id="${selectId}"]`);
+    if (!wrapper) return;
+
+    const dropdownList = wrapper.querySelector('.searchable-dropdown-list');
+    const originalSelect = document.getElementById(selectId);
+
+    // Select'i temizle ve yeniden doldur
+    originalSelect.innerHTML = '<option value="">Personel seçin</option>';
+    dropdownList.innerHTML = '';
+
+    personnelList.forEach(p => {
+        // Original select'e ekle
+        const option = document.createElement('option');
+        option.value = p.id;
+        option.textContent = `${p.name} (${p.department})`;
+        originalSelect.appendChild(option);
+
+        // Dropdown listesine ekle
+        const item = document.createElement('div');
+        item.className = 'searchable-dropdown-item';
+        item.setAttribute('data-value', p.id);
+        item.innerHTML = `
+            <span class="dropdown-item-name">${p.name}</span>
+            <span class="dropdown-item-dept">${p.department}</span>
+        `;
+
+        item.addEventListener('click', () => {
+            selectDropdownItem(selectId, p.id, p.name, p.department);
+        });
+
+        dropdownList.appendChild(item);
+    });
+}
+
+function filterDropdownOptions(selectId, searchTerm) {
+    const wrapper = document.querySelector(`.searchable-dropdown-wrapper[data-select-id="${selectId}"]`);
+    if (!wrapper) return;
+
+    const dropdownList = wrapper.querySelector('.searchable-dropdown-list');
+    const items = dropdownList.querySelectorAll('.searchable-dropdown-item');
+    const search = searchTerm.toLowerCase().trim();
+
+    let firstVisible = null;
+    items.forEach(item => {
+        const name = item.querySelector('.dropdown-item-name').textContent.toLowerCase();
+        const dept = item.querySelector('.dropdown-item-dept').textContent.toLowerCase();
+
+        if (name.includes(search) || dept.includes(search)) {
+            item.classList.remove('hidden');
+            if (!firstVisible) firstVisible = item;
+        } else {
+            item.classList.add('hidden');
+        }
+        item.classList.remove('highlighted');
+    });
+
+    // İlk görünen öğeyi highlight et
+    if (firstVisible) {
+        firstVisible.classList.add('highlighted');
+    }
+}
+
+function selectDropdownItem(selectId, value, name, department) {
+    const wrapper = document.querySelector(`.searchable-dropdown-wrapper[data-select-id="${selectId}"]`);
+    if (!wrapper) return;
+
+    const searchInput = wrapper.querySelector('.searchable-dropdown-input');
+    const dropdownList = wrapper.querySelector('.searchable-dropdown-list');
+    const originalSelect = document.getElementById(selectId);
+
+    // Input'u güncelle
+    searchInput.value = `${name} (${department})`;
+
+    // Original select'i güncelle
+    originalSelect.value = value;
+
+    // Dropdown'u kapat
+    dropdownList.classList.remove('active');
+}
+
+function setSearchableDropdownValue(selectId, value) {
+    const wrapper = document.querySelector(`.searchable-dropdown-wrapper[data-select-id="${selectId}"]`);
+    const originalSelect = document.getElementById(selectId);
+
+    if (!originalSelect) return;
+
+    // Değeri bul
+    const person = personnel.find(p => p.id === value);
+
+    if (wrapper) {
+        const searchInput = wrapper.querySelector('.searchable-dropdown-input');
+        if (person) {
+            searchInput.value = `${person.name} (${person.department})`;
+        } else {
+            searchInput.value = '';
+        }
+    }
+
+    originalSelect.value = value;
+}
+
 // ==================== NAVIGATION ====================
 function initNavigation() {
     const navItems = document.querySelectorAll('.nav-item');
@@ -770,7 +961,10 @@ function initPersonnelForm() {
     deptSelect.innerHTML = '<option value="">Departman seçin</option>' +
         departments.map(d => `<option value="${d}">${d}</option>`).join('');
 
-    // Event listener'ların tekrar eklenmesini engelle
+    // Initialize page filters - bu her zaman çalışmalı
+    initPersonnelPageFilters();
+
+    // Event listener'ların tekrar eklenmesini engelle (sadece modal form için)
     if (form.dataset.initialized) {
         return;
     }
@@ -840,25 +1034,36 @@ function initPersonnelForm() {
         }
     });
 
-    // Search and filter
-    document.getElementById('personnel-search').addEventListener('input', renderPersonnelTable);
+    // Edit form
+    initEditPersonnelForm();
+}
 
-    // Populate department filter dynamically
+// Sayfa filtreleri için ayrı init fonksiyonu - her render'da çağrılır
+function initPersonnelPageFilters() {
+    const searchInput = document.getElementById('personnel-search');
     const deptFilterSelect = document.getElementById('personnel-filter');
+    const taskFilterSelect = document.getElementById('personnel-task-filter');
+
+    if (!deptFilterSelect || !taskFilterSelect) return;
+
+    // Populate department filter
     deptFilterSelect.innerHTML = '<option value="">Tüm Departmanlar</option>' +
         departments.map(d => `<option value="${d}">${d}</option>`).join('');
 
-    deptFilterSelect.addEventListener('change', () => {
-        updateTaskFilterOptions();
-        renderPersonnelTable();
-    });
-    document.getElementById('personnel-task-filter').addEventListener('change', renderPersonnelTable);
-
-    // Populate task filter options
+    // Populate task filter
     updateTaskFilterOptions();
 
-    // Edit form
-    initEditPersonnelForm();
+    // Event listeners - her seferinde yeniden ekle (elementler yeniden oluşturulduğu için)
+    if (searchInput) {
+        searchInput.oninput = renderPersonnelTable;
+    }
+
+    deptFilterSelect.onchange = () => {
+        updateTaskFilterOptions();
+        renderPersonnelTable();
+    };
+
+    taskFilterSelect.onchange = renderPersonnelTable;
 }
 
 // ==================== CLEAR FILTER FUNCTIONS ====================
@@ -1205,8 +1410,9 @@ function initLeaveForm() {
     // Populate selects - sadece sunucuyla senkronize olan personelleri göster
     // temp- ile başlayan ID'ler henüz sunucuya eklenmemiş, bunları filtrele
     const syncedPersonnel = personnel.filter(p => !String(p.id).startsWith('temp-'));
-    personnelSelect.innerHTML = '<option value="">Personel seçin</option>' +
-        syncedPersonnel.map(p => `<option value="${p.id}">${p.name} (${p.department})</option>`).join('');
+
+    // Searchable dropdown için personel listesini hazırla
+    initSearchablePersonnelDropdown('leave-personnel', syncedPersonnel);
 
     typeSelect.innerHTML = '<option value="">İzin türü seçin</option>' +
         leaveTypes.map(t => `<option value="${t}">${t}</option>`).join('');
@@ -1294,6 +1500,10 @@ function initLeaveForm() {
         leaves.push(optimisticLeave);
 
         form.reset();
+        // Searchable dropdown input'unu da temizle
+        const searchInput = document.querySelector('.searchable-dropdown-wrapper[data-select-id="leave-personnel"] .searchable-dropdown-input');
+        if (searchInput) searchInput.value = '';
+
         closeModal('add-leave-modal');
         if (typeof updateLeaveStats === 'function') updateLeaveStats();
         renderLeaveTable();
@@ -1342,8 +1552,9 @@ function initEditLeaveForm() {
 
     // temp- ile başlayan ID'ler henüz sunucuya eklenmemiş, bunları filtrele
     const syncedPersonnel = personnel.filter(p => !String(p.id).startsWith('temp-'));
-    editPersonnelSelect.innerHTML = '<option value="">Personel seçin</option>' +
-        syncedPersonnel.map(p => `<option value="${p.id}">${p.name} (${p.department})</option>`).join('');
+
+    // Searchable dropdown için personel listesini hazırla
+    initSearchablePersonnelDropdown('edit-leave-personnel', syncedPersonnel);
 
     editTypeSelect.innerHTML = '<option value="">İzin türü seçin</option>' +
         leaveTypes.map(t => `<option value="${t}">${t}</option>`).join('');
@@ -1519,11 +1730,28 @@ function editLeave(id) {
     if (!leave) return;
 
     document.getElementById('edit-leave-id').value = leave.id;
-    document.getElementById('edit-leave-personnel').value = leave.personnelId;
+
+    // Searchable dropdown değerini set et
+    setSearchableDropdownValue('edit-leave-personnel', leave.personnelId);
+
     document.getElementById('edit-leave-type').value = leave.type;
-    document.getElementById('edit-leave-start').value = leave.startDate;
-    document.getElementById('edit-leave-end').value = leave.endDate;
     document.getElementById('edit-leave-note').value = leave.note || '';
+
+    // Flatpickr instance'larına tarihleri set et
+    const startInput = document.getElementById('edit-leave-start');
+    const endInput = document.getElementById('edit-leave-end');
+
+    if (startInput._flatpickr && leave.startDate) {
+        startInput._flatpickr.setDate(leave.startDate, true);
+    } else {
+        startInput.value = leave.startDate;
+    }
+
+    if (endInput._flatpickr && leave.endDate) {
+        endInput._flatpickr.setDate(leave.endDate, true);
+    } else {
+        endInput.value = leave.endDate;
+    }
 
     openModal('edit-leave-modal');
 }
