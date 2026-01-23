@@ -1204,6 +1204,12 @@ function showPersonnelListModal(category, title) {
             if (deptKeyword === 'Balon') return p.department && p.department.includes('Balon');
             return false;
         });
+    } else if (category === 'leave-absent') {
+        // Filter 'Mazeretsiz Gelmedi'
+        const absentIds = leaves
+            .filter(l => isDateInRange(today, l.startDate, l.endDate) && l.type === 'Mazeretsiz Gelmedi')
+            .map(l => l.personnelId);
+        filteredPersonnel = activePersonnel.filter(p => absentIds.includes(p.id));
     } else {
         // Department filter
         filteredPersonnel = activePersonnel.filter(p => p.department === category || (p.department && p.department.includes(category)));
@@ -2229,9 +2235,14 @@ function updateLeaveStats() {
         return p && (p.department && p.department.includes('Balon'));
     }).length;
 
+    const absentCount = activeLeaves.filter(l => l.type === 'Mazeretsiz Gelmedi').length;
+
     // Update numbers if elements exist
     const totalEl = document.getElementById('leave-stat-total');
     if (totalEl) totalEl.textContent = totalCount;
+
+    const absentEl = document.getElementById('leave-stat-absent');
+    if (absentEl) absentEl.textContent = absentCount;
 
     const paketlemeEl = document.getElementById('leave-stat-paketleme');
     if (paketlemeEl) paketlemeEl.textContent = paketlemeCount;
@@ -2291,7 +2302,7 @@ function renderLeavePage() {
         </div>
 
         <!-- Leave Stats Cards (Updated with Emojis to match Personel Page) -->
-        <div class="personnel-stats-grid" style="grid-template-columns: repeat(3, 1fr); margin: 0 auto 24px auto;">
+        <div class="personnel-stats-grid leave-stats-grid" style="margin: 0 auto 24px auto;">
             <!-- Total Leave -->
             <div class="stat-card stat-total" style="position: relative; cursor: pointer;" onclick="showPersonnelListModal('leave', 'Şu An İzinli Personeller')">
                 <div class="view-icon-corner">
@@ -2304,6 +2315,21 @@ function renderLeavePage() {
                 <div class="stat-content">
                     <span class="stat-value" id="leave-stat-total">0</span>
                     <span class="stat-label">Toplam İzinli</span>
+                </div>
+            </div>
+
+            <!-- Devamsızlık Leave -->
+            <div class="stat-card stat-absent" style="position: relative; cursor: pointer;" onclick="showPersonnelListModal('leave-absent', 'Devamsızlık Yapan Personel')">
+                <div class="view-icon-corner">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                </div>
+                <div class="stat-icon">❌</div>
+                <div class="stat-content">
+                    <span class="stat-value" id="leave-stat-absent">0</span>
+                    <span class="stat-label">Devamsızlık</span>
                 </div>
             </div>
 

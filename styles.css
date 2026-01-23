@@ -1791,9 +1791,15 @@ tr:hover td {
 
 @media (max-width: 640px) {
 
-    /* Mobile Constraints */
+    /* Mobile Constraints - Dashboard (1-over-2) */
     .stats-grid {
-        grid-template-columns: 1fr !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 12px;
+    }
+
+    .stats-grid .stat-card:first-child,
+    .stats-grid .dashboard-card:first-child {
+        grid-column: 1 / -1 !important;
     }
 
     .stat-card.stat-total {
@@ -1825,10 +1831,27 @@ tr:hover td {
         padding: 0 20px;
     }
 
-    /* Force 1 column for personnel stats on mobile, overriding inline styles */
+    /* Personnel Page - 2x2 Grid */
     .personnel-stats-grid {
-        grid-template-columns: 1fr !important;
+        grid-template-columns: 1fr 1fr !important;
         gap: 12px;
+    }
+
+    /* Leave Page - 4 Items -> 2x2 Grid */
+    .leave-stats-grid {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 12px;
+    }
+
+    .leave-stats-grid .stat-card:first-child {
+        grid-column: auto !important;
+    }
+
+    /* Report Filter Fixes */
+    .report-filters select {
+        width: 100%;
+        max-width: 100vw;
+        box-sizing: border-box;
     }
 }
 
