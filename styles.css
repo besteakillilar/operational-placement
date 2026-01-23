@@ -1758,15 +1758,20 @@ tr:hover td {
 
     .navbar-right {
         order: 2;
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .navbar-date {
+        display: none;
     }
 
     .nav-item span {
         display: none;
     }
 
-    /* Stats Grid - Toplam Personel üstte tam, diğerleri altta */
+    /* Stats Grid Tablet Adjustment */
     .stats-grid {
-        display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 16px;
     }
@@ -1781,6 +1786,49 @@ tr:hover td {
 
     .content-grid {
         grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+
+    /* Mobile Constraints */
+    .stats-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .stat-card.stat-total {
+        grid-column: auto !important;
+    }
+
+    .group-modal-stats {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .modal-content {
+        padding: 20px !important;
+        width: 95% !important;
+    }
+
+    .page-header h1 {
+        font-size: 1.5rem;
+    }
+
+    .needed-summary {
+        flex-direction: column;
+    }
+
+    /* Fix table cards overflow */
+    .table-container {
+        margin: 0 -20px;
+        width: calc(100% + 40px);
+        padding: 0 20px;
+    }
+
+    /* Force 1 column for personnel stats on mobile, overriding inline styles */
+    .personnel-stats-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px;
     }
 }
 
