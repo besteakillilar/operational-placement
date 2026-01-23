@@ -1074,6 +1074,13 @@ function initPersonnelPageFilters() {
 function toggleArchivedView() {
     showArchivedPersonnel = !showArchivedPersonnel;
     updateArchiveToggleButton();
+
+    // Bilgilendirme ve Debug
+    const archivedCount = personnel.filter(p => p.archived).length;
+    console.log('Arşiv Toggle:', showArchivedPersonnel, 'Toplam Arşivli:', archivedCount);
+
+
+
     renderPersonnelTable();
 }
 
@@ -1327,17 +1334,33 @@ function renderPersonnelTable() {
         const matchesFilter = !filter || p.department === filter;
         const matchesTaskFilter = !taskFilter || p.task === taskFilter;
 
-        // Arşiv filtresi: showArchivedPersonnel true ise hepsini göster
-        const matchesArchive = !p.archived || showArchivedPersonnel;
+        // Arşiv filtresi: 
+        // Toggle AÇIK (showArchivedPersonnel = true) -> Sadece Arşivliler
+        // Toggle KAPALI (showArchivedPersonnel = false) -> Sadece Aktifler
+        const matchesArchive = showArchivedPersonnel ? p.archived : !p.archived;
 
         return matchesSearch && matchesFilter && matchesTaskFilter && matchesArchive;
     });
+
+    console.log('Tablo Render:', { total: personnel.length, filtered: filtered.length, showArchived: showArchivedPersonnel });
 
     // Update stats cards (fixed values, don't change with filters)
     updatePersonnelStats();
 
     if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 40px; color: var(--text-muted);">Personel bulunamadı</td></tr>`;
+        let message = 'Personel bulunamadı';
+        // Arşiv modu açıkken farklı mesaj göster
+        if (showArchivedPersonnel) {
+            message = '📦 Arşivde personel bulunmamaktadır.';
+            // Eğer ekstra filtreler varsa mesajı güncelle
+            if (search || filter || taskFilter) {
+                message = '📦 Arşivde kriterlere uygun personel bulunamadı.';
+            }
+        } else if (search || filter || taskFilter) {
+            message = 'Kriterlere uygun personel bulunamadı.';
+        }
+
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 40px; color: var(--text-muted);">${message}</td></tr>`;
         return;
     }
 
@@ -1418,6 +1441,31 @@ function renderPersonnelTable() {
             </tr>
         `;
     }).join('');
+
+    if (showArchivedPersonnel) {
+        const hasArchived = filtered.some(p => p.archived);
+        if (!hasArchived) {
+            // Mevcut içeriğin altına ekle
+            const emptyMessage = `
+                <tr>
+                    <td colspan="4" style="text-align: center; padding: 20px; color: var(--text-muted); font-style: italic; background: var(--bg-input);">
+                        📦 Arşivlenmiş personel bulunmamaktadır.
+                    </td>
+                </tr>
+            `;
+            // Eğer tablo zaten boş değilse altına ekle, yoksa (hiç kayıt yoksa) sadece bunu göster
+            if (filtered.length > 0) {
+                tbody.innerHTML += emptyMessage;
+            } else {
+                // filtered.length === 0 durumu en başta handle edilmişti ama
+                // eğer arşiv toggle açıkken hiç kayıt yoksa "Personel bulunamadı" yerine bunu göstermek isteyebiliriz
+                // veya filtreleme sonucu 0 ise ve arşiv açıksa...
+                // Şu anki kodun üst kısmında if (filtered.length === 0) return var.
+                // O yüzden buraya kod hiç gelmeyebilir eğer tüm liste boşsa.
+                // Bunu düzeltmek gerekebilir ama şimdilik mevcut listenin altına ekleyelim.
+            }
+        }
+    }
 }
 
 function editPersonnel(id) {
