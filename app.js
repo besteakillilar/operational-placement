@@ -2544,7 +2544,7 @@ function renderLeavePage() {
         </div>
 
         <!-- Leave Stats Cards (Updated with Emojis to match Personel Page) -->
-        <div class="leave-stats-grid" style="margin: 0 auto 24px auto;">
+        <div class="leave-stats-grid" style="max-width: 1200px; margin: 0 auto 24px auto;">
             <!-- Total Leave -->
             <div class="stat-card stat-total" style="position: relative; cursor: pointer;" onclick="showPersonnelListModal('leave', 'Şu An İzinli Personeller')">
                 <div class="view-icon-corner">
@@ -2591,7 +2591,7 @@ function renderLeavePage() {
             </div>
         </div>
 
-        <div class="personnel-list-container" style="margin: 0 auto;">
+        <div class="personnel-list-container" style="max-width: 1200px; margin: 0 auto;">
             <div class="table-card table-card-centered">
                 <div class="card-header">
                     <h2>İzin Listesi</h2>
