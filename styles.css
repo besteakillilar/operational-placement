@@ -1808,14 +1808,15 @@ tr:hover td {
         display: none;
     }
 
-    /* Stats Grid Tablet Adjustment */
+    /* Stats Grid Tablet Adjustment - Now 2x2 for 4 items */
     .stats-grid {
         grid-template-columns: 1fr 1fr;
         gap: 16px;
     }
 
     .stats-grid .stat-card.stat-total {
-        grid-column: 1 / -1;
+        grid-column: auto;
+        /* Allow it to fit into the 2x2 grid naturally */
     }
 
     .form-row {
@@ -1837,11 +1838,8 @@ tr:hover td {
 
     /* Reset span for Dashboard - Just simple 2x2 */
     .stats-grid .stat-card:first-child,
-    .stats-grid .dashboard-card:first-child {
-        grid-column: auto !important;
-    }
-
-    .stat-card.stat-total {
+    .stats-grid .dashboard-card:first-child,
+    .stats-grid .stat-card.stat-total {
         grid-column: auto !important;
     }
 
