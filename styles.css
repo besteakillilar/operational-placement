@@ -3175,3 +3175,128 @@ tr:hover td {
 [data-theme="light"] .dropdown-item-dept {
     background: #f1f5f9;
 }
+
+/* ==================== ARCHIVE STYLES ==================== */
+
+/* Archive Toggle Button */
+.btn-archive-toggle {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    padding: 8px 16px;
+    /* Match input padding */
+    height: 40px;
+    /* Match input height roughly */
+    font-size: 0.85rem;
+    font-weight: 500;
+    justify-content: center;
+}
+
+.btn-archive-toggle:hover {
+    border-color: var(--primary);
+    color: var(--text-primary);
+    background: var(--bg-card-hover);
+    transform: translateY(-1px);
+}
+
+.btn-archive-toggle.active {
+    background: rgba(99, 102, 241, 0.1);
+    border-color: var(--primary);
+    color: var(--primary-light);
+}
+
+/* Table Actions Alignment Fix */
+.table-actions {
+    align-items: center;
+    /* Ensure vertical alignment */
+}
+
+/* Force same height for all elements in table actions */
+.table-actions .search-box,
+.table-actions .filter-select,
+.table-actions .btn {
+    height: 38px;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+}
+
+/* Adjust padding for buttons to fit height */
+.table-actions .btn {
+    padding: 0 16px;
+    font-size: 0.85rem;
+}
+
+.table-actions .search-box input {
+    height: 100%;
+}
+
+/* Archived Row Style */
+.archived-row {
+    opacity: 0.6;
+    background: var(--bg-input) !important;
+}
+
+.archived-row td {
+    color: var(--text-muted) !important;
+}
+
+.archived-row:hover {
+    opacity: 0.8;
+}
+
+/* Archive Badge */
+.archive-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--warning);
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    margin-left: 8px;
+    vertical-align: middle;
+}
+
+/* Archive/Restore Button */
+.btn-archive {
+    color: var(--warning) !important;
+}
+
+.btn-archive:hover {
+    background: rgba(245, 158, 11, 0.15) !important;
+    border-color: var(--warning) !important;
+}
+
+.btn-restore {
+    color: var(--success) !important;
+}
+
+.btn-restore:hover {
+    background: rgba(16, 185, 129, 0.15) !important;
+    border-color: var(--success) !important;
+}
+
+/* Light mode overrides */
+[data-theme="light"] .btn-archive-toggle {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+}
+
+[data-theme="light"] .btn-archive-toggle:hover {
+    border-color: #6366f1;
+}
+
+[data-theme="light"] .btn-archive-toggle.active {
+    background: rgba(99, 102, 241, 0.08);
+}
+
+[data-theme="light"] .archived-row {
+    background: #f8fafc !important;
+}
+
+[data-theme="light"] .archive-badge {
+    background: rgba(245, 158, 11, 0.1);
+}

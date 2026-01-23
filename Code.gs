@@ -68,6 +68,12 @@ function handleRequest(e) {
       case 'deletePersonnel':
         result = deletePersonnel(e.parameter.id);
         break;
+      case 'archivePersonnel':
+        result = archivePersonnel(e.parameter.id);
+        break;
+      case 'restorePersonnel':
+        result = restorePersonnel(e.parameter.id);
+        break;
       case 'addLeave':
         result = addLeave(JSON.parse(e.parameter.data));
         break;
@@ -104,7 +110,7 @@ function getSheetData(sheetName) {
     sheet = ss.insertSheet(sheetName);
     // Başlıkları ekle
     if (sheetName === SHEETS.PERSONNEL) {
-      sheet.appendRow(['ID', 'Ad Soyad', 'Departman', 'Görev', 'Not', 'Oluşturma Tarihi']);
+      sheet.appendRow(['ID', 'Ad Soyad', 'Departman', 'Görev', 'Not', 'Oluşturma Tarihi', 'Arşivlendi']);
     } else if (sheetName === SHEETS.LEAVES) {
       sheet.appendRow(['ID', 'Personel ID', 'Personel Adı', 'Departman', 'İzin Türü', 'Başlangıç', 'Bitiş', 'Açıklama', 'Oluşturma Tarihi']);
     } else if (sheetName === SHEETS.DEPARTMENTS) {
@@ -154,7 +160,8 @@ function getPersonnel() {
     department: row[2],
     task: row[3],
     note: row[4] || '',
-    createdAt: row[5]
+    createdAt: row[5],
+    archived: row[6] === true || row[6] === 'true' || row[6] === 'TRUE'
   })).filter(p => p.id); // Boş satırları filtrele
   
   return { success: true, data: personnel };
@@ -273,7 +280,8 @@ function addPersonnel(data) {
     data.department || '',
     data.task || '',
     data.note || '',
-    createdAt
+    createdAt,
+    false  // archived = false (yeni personel aktif)
   ]);
   
   return { 
@@ -340,6 +348,56 @@ function deletePersonnel(id) {
   deleteLeavesByPersonnelId(id);
   
   return { success: true, message: 'Personel silindi' };
+}
+
+function archivePersonnel(id) {
+  const ss = getSpreadsheet();
+  const sheet = ss.getSheetByName(SHEETS.PERSONNEL);
+  
+  if (!sheet) return { success: false, error: 'Sheet bulunamadı' };
+  
+  const allData = sheet.getDataRange().getValues();
+  let rowIndex = -1;
+  
+  const searchId = String(id);
+  for (let i = 1; i < allData.length; i++) {
+    if (String(allData[i][0]) === searchId) {
+      rowIndex = i + 1;
+      break;
+    }
+  }
+  
+  if (rowIndex === -1) return { success: false, error: 'Personel bulunamadı' };
+  
+  // 7. sütun (Arşivlendi) alanını true yap
+  sheet.getRange(rowIndex, 7).setValue(true);
+  
+  return { success: true, message: 'Personel arşivlendi' };
+}
+
+function restorePersonnel(id) {
+  const ss = getSpreadsheet();
+  const sheet = ss.getSheetByName(SHEETS.PERSONNEL);
+  
+  if (!sheet) return { success: false, error: 'Sheet bulunamadı' };
+  
+  const allData = sheet.getDataRange().getValues();
+  let rowIndex = -1;
+  
+  const searchId = String(id);
+  for (let i = 1; i < allData.length; i++) {
+    if (String(allData[i][0]) === searchId) {
+      rowIndex = i + 1;
+      break;
+    }
+  }
+  
+  if (rowIndex === -1) return { success: false, error: 'Personel bulunamadı' };
+  
+  // 7. sütun (Arşivlendi) alanını false yap
+  sheet.getRange(rowIndex, 7).setValue(false);
+  
+  return { success: true, message: 'Personel arşivden çıkarıldı' };
 }
 
 // ==================== İZİN İŞLEMLERİ ====================

@@ -9,6 +9,7 @@ let departments = [];
 let tasks = [];
 let leaveTypes = [];
 let currentUser = null;
+let showArchivedPersonnel = false;
 
 // ==================== API FUNCTIONS ====================
 async function apiCall(action, data = null) {
@@ -1064,6 +1065,30 @@ function initPersonnelPageFilters() {
     };
 
     taskFilterSelect.onchange = renderPersonnelTable;
+
+    // Arşiv toggle butonunun görünümünü güncelle
+    updateArchiveToggleButton();
+}
+
+// Arşiv görünümünü toggle et
+function toggleArchivedView() {
+    showArchivedPersonnel = !showArchivedPersonnel;
+    updateArchiveToggleButton();
+    renderPersonnelTable();
+}
+
+// Arşiv toggle butonunun görünümünü güncelle
+function updateArchiveToggleButton() {
+    const btn = document.getElementById('show-archived-toggle');
+    if (!btn) return;
+
+    if (showArchivedPersonnel) {
+        btn.classList.add('active');
+        btn.innerHTML = '📦 Arşivi Gizle';
+    } else {
+        btn.classList.remove('active');
+        btn.innerHTML = '📦 Arşivi Göster';
+    }
 }
 
 // ==================== CLEAR FILTER FUNCTIONS ====================
@@ -1071,6 +1096,8 @@ function clearPersonnelFilters() {
     document.getElementById('personnel-search').value = '';
     document.getElementById('personnel-filter').value = '';
     document.getElementById('personnel-task-filter').value = '';
+    showArchivedPersonnel = false;
+    updateArchiveToggleButton();
     updateTaskFilterOptions();
     renderPersonnelTable();
     showToast('Filtreler temizlendi', 'success');
@@ -1119,9 +1146,12 @@ function updatePersonnelStats() {
     const today = getToday();
 
     // Calculate fixed stats - these don't change with filters
-    const totalCount = personnel.length;
-    const paketlemeCount = personnel.filter(p => p.department === 'Paketleme').length;
-    const balonCount = personnel.filter(p => p.department && p.department.includes('Balon')).length;
+    // Arşivlenmiş personelleri istatistiklere dahil etmeyelim
+    const activePersonnel = personnel.filter(p => !p.archived);
+
+    const totalCount = activePersonnel.length;
+    const paketlemeCount = activePersonnel.filter(p => p.department === 'Paketleme').length;
+    const balonCount = activePersonnel.filter(p => p.department && p.department.includes('Balon')).length;
 
     const onLeaveIds = leaves
         .filter(l => isDateInRange(today, l.startDate, l.endDate))
@@ -1143,15 +1173,17 @@ function updatePersonnelStats() {
 // ==================== PERSONNEL LIST MODAL ====================
 function showPersonnelListModal(category, title) {
     const today = getToday();
+    // Base list: sadece aktif personeller
+    const activePersonnel = personnel.filter(p => !p.archived);
     let filteredPersonnel = [];
 
     if (category === 'all') {
-        filteredPersonnel = personnel;
+        filteredPersonnel = activePersonnel;
     } else if (category === 'leave') {
         const onLeaveIds = leaves
             .filter(l => isDateInRange(today, l.startDate, l.endDate))
             .map(l => l.personnelId);
-        filteredPersonnel = personnel.filter(p => onLeaveIds.includes(p.id));
+        filteredPersonnel = activePersonnel.filter(p => onLeaveIds.includes(p.id));
     } else if (category.startsWith('leave-dept-')) {
         // Filter active leaves first, then department
         const deptKeyword = category.replace('leave-dept-', '');
@@ -1159,7 +1191,7 @@ function showPersonnelListModal(category, title) {
             .filter(l => isDateInRange(today, l.startDate, l.endDate))
             .map(l => l.personnelId);
 
-        filteredPersonnel = personnel.filter(p => {
+        filteredPersonnel = activePersonnel.filter(p => {
             if (!onLeaveIds.includes(p.id)) return false;
             if (deptKeyword === 'Paketleme') return p.department === 'Paketleme';
             if (deptKeyword === 'Balon') return p.department && p.department.includes('Balon');
@@ -1167,7 +1199,7 @@ function showPersonnelListModal(category, title) {
         });
     } else {
         // Department filter
-        filteredPersonnel = personnel.filter(p => p.department === category || (p.department && p.department.includes(category)));
+        filteredPersonnel = activePersonnel.filter(p => p.department === category || (p.department && p.department.includes(category)));
     }
 
     // Build modal content
@@ -1294,7 +1326,11 @@ function renderPersonnelTable() {
         const matchesSearch = p.name.toLowerCase().includes(search);
         const matchesFilter = !filter || p.department === filter;
         const matchesTaskFilter = !taskFilter || p.task === taskFilter;
-        return matchesSearch && matchesFilter && matchesTaskFilter;
+
+        // Arşiv filtresi: showArchivedPersonnel true ise hepsini göster
+        const matchesArchive = !p.archived || showArchivedPersonnel;
+
+        return matchesSearch && matchesFilter && matchesTaskFilter && matchesArchive;
     });
 
     // Update stats cards (fixed values, don't change with filters)
@@ -1305,12 +1341,18 @@ function renderPersonnelTable() {
         return;
     }
 
-
+    // Arşivlenmişleri sona at
+    filtered.sort((a, b) => {
+        if (a.archived && !b.archived) return 1;
+        if (!a.archived && b.archived) return -1;
+        return a.name.localeCompare(b.name);
+    });
 
     tbody.innerHTML = filtered.map(p => {
         const isOnLeave = leaves.some(l => l.personnelId === p.id && isDateInRange(today, l.startDate, l.endDate));
         const statusClass = isOnLeave ? 'status-leave' : 'status-active';
         const statusText = isOnLeave ? 'İzinli' : 'Aktif';
+        const isArchived = p.archived === true;
 
         // Not ikonu - sadece not varsa göster
         const noteIcon = p.note && p.note.trim() ? `
@@ -1324,12 +1366,36 @@ function renderPersonnelTable() {
             </span>
         ` : '';
 
+        // Arşiv badge'i
+        const archiveBadge = isArchived ? '<span class="archive-badge">📦 Arşiv</span>' : '';
+
         // Get task-specific CSS class
         const taskClass = getTaskClass(p.task);
 
+        // Row class - arşivlenmişse soluk görünüm
+        const rowClass = isArchived ? 'archived-row' : '';
+
+        // Arşivle veya Geri Al butonu
+        const archiveButton = isArchived ? `
+            <button class="btn btn-secondary btn-icon-only btn-restore" onclick="restorePersonnel('${p.id}')" title="Arşivden Çıkar">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="1 4 1 10 7 10"/>
+                    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+                </svg>
+            </button>
+        ` : `
+            <button class="btn btn-secondary btn-icon-only btn-archive" onclick="archivePersonnel('${p.id}')" title="Arşivle">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="21 8 21 21 3 21 3 8"/>
+                    <rect x="1" y="3" width="22" height="5"/>
+                    <line x1="10" y1="12" x2="14" y2="12"/>
+                </svg>
+            </button>
+        `;
+
         return `
-            <tr>
-                <td><strong>${p.name}</strong>${noteIcon}</td>
+            <tr class="${rowClass}">
+                <td><strong>${p.name}</strong>${noteIcon}${archiveBadge}</td>
                 <td>${p.department}</td>
                 <td><span class="task-badge ${taskClass}">${p.task || '-'}</span></td>
                 <td>
@@ -1340,7 +1406,8 @@ function renderPersonnelTable() {
                                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                             </svg>
                         </button>
-                        <button class="btn btn-secondary btn-icon-only btn-danger-hover" onclick="confirmDeletePersonnel('${p.id}')" title="Sil">
+                        ${archiveButton}
+                        <button class="btn btn-secondary btn-icon-only btn-danger-hover" onclick="confirmDeletePersonnel('${p.id}')" title="Kalıcı Sil">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <polyline points="3 6 5 6 21 6"/>
                                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
@@ -1369,6 +1436,51 @@ function editPersonnel(id) {
     }, 50);
 
     openModal('edit-personnel-modal');
+}
+
+// ==================== ARCHIVE PERSONNEL ====================
+async function archivePersonnel(id) {
+    const person = personnel.find(p => p.id === id);
+    if (!person) return;
+
+    // Optimistic UI
+    person.archived = true;
+    renderPersonnelTable();
+    updateDashboard();
+    showToast(`${person.name} arşivlendi`, 'warning');
+
+    // API sync
+    try {
+        await apiPost('archivePersonnel', null, id);
+    } catch (error) {
+        console.error('Archive error:', error);
+        showToast('Arşivleme başarısız!', 'error');
+        // Rollback
+        person.archived = false;
+        renderPersonnelTable();
+    }
+}
+
+async function restorePersonnel(id) {
+    const person = personnel.find(p => p.id === id);
+    if (!person) return;
+
+    // Optimistic UI
+    person.archived = false;
+    renderPersonnelTable();
+    updateDashboard();
+    showToast(`${person.name} arşivden çıkarıldı`, 'success');
+
+    // API sync
+    try {
+        await apiPost('restorePersonnel', null, id);
+    } catch (error) {
+        console.error('Restore error:', error);
+        showToast('Geri alma başarısız!', 'error');
+        // Rollback
+        person.archived = true;
+        renderPersonnelTable();
+    }
 }
 
 let deleteCallback = null;
@@ -1788,12 +1900,18 @@ document.getElementById('confirm-delete').addEventListener('click', () => {
 });
 
 // ==================== REPORTS ====================
+// ==================== REPORTS ====================
 function initReports() {
     const personnelSelect = document.getElementById('report-personnel');
     const typeSelect = document.getElementById('report-type');
 
+    if (!personnelSelect || !typeSelect) return;
+
+    // Arşivlenmemiş personelleri filtrele
+    const activePersonnel = personnel.filter(p => !p.archived);
+
     personnelSelect.innerHTML = '<option value="">Tüm Personeller</option>' +
-        personnel.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+        activePersonnel.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
 
     typeSelect.innerHTML = '<option value="">Tüm Türler</option>' +
         leaveTypes.map(t => `<option value="${t}">${t}</option>`).join('');
@@ -2020,6 +2138,9 @@ function renderPersonnelPage() {
                         <select id="personnel-task-filter" class="filter-select">
                             <option value="">Tüm Görevler</option>
                         </select>
+                        <button type="button" class="btn btn-secondary btn-archive-toggle" id="show-archived-toggle" onclick="toggleArchivedView()" title="Arşivlenmiş personelleri göster/gizle">
+                            📦 Arşivi Göster
+                        </button>
                         <button type="button" class="btn btn-secondary btn-clear-filter" onclick="clearPersonnelFilters()" title="Filtreleri Temizle">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <line x1="18" y1="6" x2="6" y2="18"/>
@@ -2077,12 +2198,21 @@ function openAddLeaveModal() {
     if (form) form.reset();
 
     // Populate personnel select - sadece sunucuyla senkronize olan personelleri göster
+    // Populate personnel select - sadece sunucuyla senkronize olan ve arşivlenmemiş personelleri göster
     const select = document.getElementById('leave-personnel');
     if (select) {
         // temp- ile başlayan ID'ler henüz sunucuya eklenmemiş, bunları filtrele
-        const syncedPersonnel = personnel.filter(p => !String(p.id).startsWith('temp-'));
-        select.innerHTML = '<option value="">Personel Seçin</option>' +
-            syncedPersonnel.map(p => `<option value="${p.id}">${p.name} (${p.department})</option>`).join('');
+        // Arşivlenmiş personelleri filtrele
+        const syncedPersonnel = personnel.filter(p => !String(p.id).startsWith('temp-') && !p.archived);
+
+        // Searchable Dropdown'ı güncelle
+        if (typeof updateSearchableDropdownOptions === 'function') {
+            updateSearchableDropdownOptions('leave-personnel', syncedPersonnel);
+        } else {
+            // Fallback: normal select
+            select.innerHTML = '<option value="">Personel Seçin</option>' +
+                syncedPersonnel.map(p => `<option value="${p.id}">${p.name} (${p.department})</option>`).join('');
+        }
     }
 
     // Populate leave type select
