@@ -2522,7 +2522,7 @@ function openAddLeaveModal() {
         } else {
             // Fallback: normal select
             select.innerHTML = '<option value="">Personel Seçin</option>' +
-                syncedPersonnel.map(p => `< option value = "${p.id}" > ${p.name} (${p.department})</option > `).join('');
+                syncedPersonnel.map(p => `<option value="${p.id}">${p.name} (${p.department})</option>`).join('');
         }
     }
 
@@ -2530,7 +2530,7 @@ function openAddLeaveModal() {
     const typeSelect = document.getElementById('leave-type');
     if (typeSelect && typeof leaveTypes !== 'undefined') {
         typeSelect.innerHTML = '<option value="">İzin Türü Seçin</option>' +
-            leaveTypes.map(t => `< option value = "${t}" > ${t}</option > `).join('');
+            leaveTypes.map(t => `<option value="${t}">${t}</option>`).join('');
     }
 
     openModal('add-leave-modal');
@@ -2553,7 +2553,7 @@ function renderLeavePage() {
             </button>
         </div>
 
-        < !--Leave Stats Cards(Updated with Emojis to match Personel Page)-->
+        <!-- Leave Stats Cards (Updated with Emojis to match Personel Page) -->
         <div class="personnel-stats-grid leave-stats-grid" style="margin: 0 auto 24px auto;">
             <!-- Total Leave -->
             <div class="stat-card stat-total" style="position: relative; cursor: pointer;" onclick="showPersonnelListModal('leave', 'Şu An İzinli Personeller')">
@@ -2652,10 +2652,10 @@ function renderLeavePage() {
 // ==================== REPORT RENDER ====================
 function renderReportsPage() {
     document.getElementById('raporlar-page').innerHTML = `
-            < div class="page-header" >
+        <div class="page-header">
             <h1>Devamsızlık Raporları</h1>
             <p class="page-subtitle">Personel bazlı devamsızlık analizi</p>
-        </div >
+        </div>
             <div class="report-container">
                 <div class="report-filters">
                     <div class="filter-group" style="flex: 2; min-width: 250px;">
