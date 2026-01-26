@@ -3769,3 +3769,12 @@ tr:hover td {
     background: var(--border);
     border-radius: 3px;
 }
+/* Archived Personnel Card */
+.stat-card.stat-archived::before {
+    background: linear-gradient(90deg, #64748b, #94a3b8);
+}
+
+.stat-archived .stat-icon {
+    background: rgba(100, 116, 139, 0.15);
+    color: #94a3b8;
+}

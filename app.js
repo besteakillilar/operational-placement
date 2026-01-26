@@ -1289,6 +1289,13 @@ function updatePersonnelStats() {
     if (paketlemeEl) paketlemeEl.textContent = paketlemeCount;
     if (balonEl) balonEl.textContent = balonCount;
     if (leaveEl) leaveEl.textContent = leaveCount;
+
+    // Update Archived Stat
+    const archivedEl = document.getElementById('personnel-stat-archived');
+    if (archivedEl) {
+        const archivedCount = personnel.filter(p => p.archived).length;
+        archivedEl.textContent = archivedCount;
+    }
 }
 
 // ==================== PERSONNEL LIST MODAL ====================
@@ -1300,6 +1307,8 @@ function showPersonnelListModal(category, title) {
 
     if (category === 'all') {
         filteredPersonnel = activePersonnel;
+    } else if (category === 'archived') {
+        filteredPersonnel = personnel.filter(p => p.archived);
     } else if (category === 'leave') {
         const onLeaveIds = leaves
             .filter(l => isDateInRange(today, l.startDate, l.endDate))
@@ -2405,17 +2414,17 @@ function renderPersonnelPage() {
                     <span class="stat-label">Balon Tedarik</span>
                 </div>
             </div>
-            <div class="stat-card stat-leave" style="position: relative;" onclick="showPersonnelListModal('leave', 'İzinli Personeller')">
+            <div class="stat-card stat-archived" style="position: relative;" onclick="showPersonnelListModal('archived', 'Arşivlenen Personeller')">
                 <div class="view-icon-corner">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                         <circle cx="12" cy="12" r="3"/>
                     </svg>
                 </div>
-                <div class="stat-icon">📅</div>
+                <div class="stat-icon">📦</div>
                 <div class="stat-content">
-                    <span class="stat-value" id="personnel-stat-leave">0</span>
-                    <span class="stat-label">İzinli</span>
+                    <span class="stat-value" id="personnel-stat-archived">0</span>
+                    <span class="stat-label">Arşivlenen Personel</span>
                 </div>
             </div>
         </div>
