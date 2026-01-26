@@ -2081,7 +2081,7 @@ function initReports() {
     // Personnel Dropdown - uses utils/searchableDropdown logic explicitly or reuses function
     // Assuming createSearchableDropdown exists and works.
     createSearchableDropdown('report-personnel-container', 'report-personnel',
-        [{ id: '', name: 'Tüm Personeller' }, ...personnel.filter(p => !p.archived)],
+        personnel.filter(p => !p.archived),
         'Tüm Personeller'
     );
 
