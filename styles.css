@@ -476,6 +476,39 @@ body {
     opacity: 0.8;
 }
 
+/* Responsive Navbar for Tablet/iPad Pro */
+@media (max-width: 1100px) {
+    .navbar-container {
+        padding: 0 16px;
+    }
+
+    .brand-text {
+        font-size: 1.1rem;
+    }
+
+    .nav-item {
+        padding: 8px 10px;
+        font-size: 0.8rem;
+        gap: 6px;
+    }
+
+    .navbar-menu {
+        gap: 4px;
+    }
+
+    .navbar-date {
+        font-size: 0.75rem;
+    }
+
+    .user-name {
+        display: none;
+    }
+
+    .navbar-right {
+        gap: 10px;
+    }
+}
+
 /* Main Content */
 .main-content {
     max-width: 1400px;
@@ -1530,6 +1563,9 @@ tr:hover td {
     text-align: center;
     border: 1px solid var(--border);
     animation: modalIn 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    /* Ensure vertical stacking */
 }
 
 @keyframes modalIn {
@@ -1543,6 +1579,9 @@ tr:hover td {
         transform: scale(1);
     }
 }
+
+/* Hide Needed Formula */
+/* .needed-formula { display: none !important; } - Reverted by user request */
 
 .modal-icon {
     width: 64px;
@@ -1573,6 +1612,16 @@ tr:hover td {
 .modal-actions {
     display: flex;
     gap: 12px;
+    justify-content: flex-end;
+    /* Align right by default */
+    margin-top: 24px;
+    /* Add spacing from content */
+    width: 100%;
+    /* Ensure full width */
+}
+
+/* Center actions for smaller confirmation modals */
+.modal-content:not(.modal-lg):not(.modal-wide) .modal-actions {
     justify-content: center;
 }
 
@@ -3769,6 +3818,7 @@ tr:hover td {
     background: var(--border);
     border-radius: 3px;
 }
+
 /* Archived Personnel Card */
 .stat-card.stat-archived::before {
     background: linear-gradient(90deg, #64748b, #94a3b8);
@@ -3778,3 +3828,208 @@ tr:hover td {
     background: rgba(100, 116, 139, 0.15);
     color: #94a3b8;
 }
+
+/* Mobile Navbar Optimization */
+@media (max-width: 768px) {
+    .navbar-container {
+        padding: 12px;
+        height: auto;
+        flex-direction: column;
+        /* Stack VERTICALLY */
+        align-items: center;
+        gap: 8px;
+    }
+
+    .navbar-brand {
+        margin-right: 0;
+        width: 100%;
+        justify-content: center;
+    }
+
+    .brand-text {
+        font-size: 1.2rem;
+        display: block;
+    }
+
+    /* Right section container: Date + User + Toggle */
+    .navbar-right {
+        margin-left: 0;
+        width: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        /* Allow wrapping */
+        justify-content: center;
+        gap: 12px;
+    }
+
+    /* Force date to new line */
+    /* Force date to new line */
+    .navbar-date {
+        width: 100%;
+        justify-content: center;
+        margin-bottom: 3px;
+        /* space below date */
+        font-size: 0.95rem;
+        /* slightly larger */
+        color: var(--text-secondary) !important;
+        /* Back to secondary but visible */
+        font-weight: 500;
+        order: -1;
+        display: flex !important;
+        align-items: center;
+        background: transparent !important;
+        /* Force remove background */
+        padding: 0 !important;
+    }
+
+    .navbar-date span {
+        display: inline-block !important;
+        color: var(--text-secondary) !important;
+        /* Match theme */
+        font-size: 0.85rem;
+    }
+
+    .navbar-date svg {
+        display: inline-block !important;
+        margin-right: 6px;
+        width: 14px;
+        height: 14px;
+        color: var(--primary);
+        /* Keep brand color */
+        stroke: currentColor !important;
+    }
+
+    /* Menu container */
+    .navbar-menu {
+        order: 10;
+        /* Last */
+        width: 100%;
+        overflow-x: auto;
+        padding-top: 12px;
+        margin-top: 4px;
+        border-top: 1px solid var(--border);
+        justify-content: center;
+        /* Center icons */
+        gap: 16px;
+    }
+
+    .navbar-menu::-webkit-scrollbar {
+        display: none;
+    }
+
+    .nav-item {
+        padding: 10px;
+        border-radius: 12px;
+        background: var(--bg-input);
+        /* Slight bubble effect */
+    }
+
+    .nav-item.active {
+        background: var(--primary);
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+
+    .nav-item span {
+        display: none;
+        /* Icon only for cleaner mobile look per screenshot */
+    }
+
+    .user-menu {
+        display: flex;
+        /* Ensure user menu is visible per screenshot */
+    }
+
+    /* Mobile Modal Fixes */
+    .modal-wide {
+        width: 95% !important;
+        max-width: 95% !important;
+        margin: 10px;
+        max-height: 85vh;
+        overflow-y: auto;
+    }
+
+    .breakdown-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.modal-wide .modal-actions {
+    justify-content: flex-end;
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+}
+
+.modal-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.needed-modal-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.modal-wide {
+    max-width: 800px;
+    width: 95%;
+}
+
+.modal-lg {
+    max-width: 600px;
+    width: 90%;
+}
+
+@media (max-width: 768px) {
+
+    /* Leave Page Mobile Layout */
+    .leave-stats-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 16px;
+    }
+
+    .leave-stats-grid .stat-card {
+        grid-column: auto;
+    }
+
+    /* Make the 3rd card (Balon Tedarik) span full width */
+    .leave-stats-grid .stat-card:nth-child(3) {
+        grid-column: span 2 !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .report-filters {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 16px;
+    }
+
+    .filter-group {
+        width: 100%;
+    }
+
+    .filter-group select,
+    .report-filters .btn,
+    .custom-dropdown-wrapper .dropdown-trigger {
+        width: 100%;
+        height: 48px;
+        /* Taller touch targets */
+        font-size: 1rem;
+    }
+
+    .report-filters .btn-clear-filter {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+.date-icon {
+    display: none !important;
+}
+
+@media (max-width: 768px) {
+    .navbar-date {
+        background: rgba(255, 255, 255, 0.05);

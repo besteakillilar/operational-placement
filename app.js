@@ -868,8 +868,8 @@ function showNeededPersonnelModal(dept) {
     const targetValEl = document.querySelector('.needed-stat.target .needed-value');
     if (targetValEl) targetValEl.textContent = totalTarget;
 
-    document.getElementById('needed-active-text').textContent = totalCurrent;
-    document.getElementById('needed-result-text').textContent = needed;
+    // document.getElementById('needed-active-text').textContent = totalCurrent;
+    // document.getElementById('needed-result-text').textContent = needed;
 
     // Editable Breakdown
     const breakdownContainer = document.querySelector('.needed-breakdown');
@@ -916,7 +916,7 @@ function showNeededPersonnelModal(dept) {
 
             const newNeeded = Math.max(0, newTotal - totalCurrent);
             document.getElementById('needed-result').textContent = newNeeded;
-            document.getElementById('needed-result-text').textContent = newNeeded;
+            // document.getElementById('needed-result-text').textContent = newNeeded;
         });
     });
 
