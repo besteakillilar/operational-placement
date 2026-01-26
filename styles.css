@@ -4033,3 +4033,73 @@ tr:hover td {
 @media (max-width: 768px) {
     .navbar-date {
         background: rgba(255, 255, 255, 0.05);
+
+.monthly-report-wrapper { position: relative; overflow-x: auto; max-width: 100%; border-radius: var(--radius-md); border: 1px solid var(--border); }
+.monthly-report-table { width: max-content; border-collapse: collapse; min-width: 100%; }
+.monthly-report-table th, .monthly-report-table td { padding: 4px; text-align: center; border: 1px solid var(--border); font-size: 0.8rem; min-width: 25px; }
+.monthly-report-table th { background: var(--bg-card); position: sticky; top: 0; z-index: 10; font-weight: 600; }
+.monthly-report-table th.name-col { left: 0; z-index: 20; min-width: 150px; text-align: left; padding-left: 8px; }
+.monthly-report-table td.name-col { left: 0; z-index: 5; position: sticky; background: var(--bg-card); text-align: left; padding-left: 8px; font-weight: 500; }
+.cell-weekend { background: rgba(99, 102, 241, 0.05); color: var(--text-muted); }
+.cell-x { color: var(--success); font-weight: bold; }
+.cell-i { background: rgba(245, 158, 11, 0.15); color: var(--warning); font-weight: bold; border-radius: 4px; }
+.cell-r { background: rgba(239, 68, 68, 0.15); color: var(--danger); font-weight: bold; border-radius: 4px; }
+.cell-ht { background: rgba(100, 116, 139, 0.1); color: var(--text-muted); font-size: 0.7rem; }
+.status-legend { display: inline-block; width: 20px; height: 20px; text-align: center; line-height: 20px; border-radius: 4px; font-weight: bold; margin-right: 5px; }
+.status-legend.x { color: var(--success); }
+.status-legend.i { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+.status-legend.r { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+.status-legend.ht { background: rgba(100, 116, 139, 0.1); color: var(--text-muted); }
+
+/* Monthly Report Modal specific fixes */
+#monthly-report-modal select,
+#monthly-report-modal input {
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+}
+
+.cell-x { color: var(--success); font-weight: bold; } /* Geldi - Green */
+.cell-i { background: rgba(245, 158, 11, 0.15); color: var(--warning); font-weight: bold; } /* Izin - Orange */
+.cell-r { background: rgba(239, 68, 68, 0.15); color: var(--danger); font-weight: bold; } /* Rapor - Red */
+.cell-ht { background: var(--bg-secondary); color: var(--text-muted); } /* HT - Dimmed */
+
+
+/* FORCE MONTHLY REPORT STYLES */
+#monthly-report-modal select,
+#monthly-report-modal input {
+    background-color: #1e293b !important;
+    color: #e2e8f0 !important;
+    border: 1px solid #334155 !important;
+}
+
+/* Full cell coloring for better visibility */
+.monthly-report-table td {
+    font-weight: 600;
+}
+
+.cell-x {
+    background-color: rgba(34, 197, 94, 0.15) !important;
+    color: #4ade80 !important;
+}
+
+.cell-i {
+    background-color: rgba(245, 158, 11, 0.15) !important;
+    color: #fbbf24 !important;
+}
+
+.cell-r {
+    background-color: rgba(239, 68, 68, 0.15) !important;
+    color: #f87171 !important;
+}
+
+.cell-ht {
+    background-color: #334155 !important;
+    color: #94a3b8 !important;
+}
+
+/* Legend updates to match */
+.status-legend.x { background-color: rgba(34, 197, 94, 0.15) !important; color: #4ade80 !important; }
+.status-legend.i { background-color: rgba(245, 158, 11, 0.15) !important; color: #fbbf24 !important; }
+.status-legend.r { background-color: rgba(239, 68, 68, 0.15) !important; color: #f87171 !important; }
+.status-legend.ht { background-color: #334155 !important; color: #94a3b8 !important; }

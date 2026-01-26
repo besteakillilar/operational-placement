@@ -2661,6 +2661,7 @@ function renderReportsPage() {
                         <select id="report-type"></select>
                     </div>
                     <button id="generate-report" class="btn btn-primary">📊 Rapor Oluştur</button>
+                    <button class="btn btn-secondary" onclick="openMonthlyReportModal()">📅 Aylık Çizelge</button>
                     <button type="button" class="btn btn-secondary btn-clear-filter" onclick="clearReportFilters()" title="Filtreleri Temizle">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <line x1="18" y1="6" x2="6" y2="18" />
@@ -2880,3 +2881,159 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('loading-overlay').classList.add('hidden');
     }
 });
+
+// ==================== MONTHLY REPORT ====================
+function generateMonthlyTable() {
+    const monthSelect = document.getElementById('monthly-report-month-select');
+    if (!monthSelect) return;
+
+    // Populate selectors if empty
+    if (monthSelect.children.length === 0) {
+        const months = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+        monthSelect.innerHTML = months.map((m, i) => `<option value='${i}'>${m}</option>`).join('');
+        monthSelect.value = new Date().getMonth();
+
+        // Add change listener
+        monthSelect.addEventListener('change', generateMonthlyTable);
+    }
+
+    const yearSelect = document.getElementById('monthly-report-year-select');
+    // Ensure year exists if in DOM
+    if (yearSelect && yearSelect.children.length === 0) {
+        const currentYear = new Date().getFullYear();
+        yearSelect.innerHTML = `<option value='${currentYear}'>${currentYear}</option>`;
+        yearSelect.value = currentYear;
+    }
+
+    const month = parseInt(monthSelect.value);
+    const year = yearSelect ? parseInt(yearSelect.value) : new Date().getFullYear();
+    const table = document.getElementById('monthly-report-table');
+    if (!table) return;
+
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const specificSaturdayHolidays = [10, 24];
+
+    let headerHtml = '<thead><tr><th class="name-col">Personel</th>';
+    for (let i = 1; i <= daysInMonth; i++) {
+        const date = new Date(year, month, i);
+        const dayName = date.toLocaleDateString('tr-TR', { weekday: 'short' }).substring(0, 2);
+
+        const isSunday = date.getDay() === 0;
+        const isSaturday = date.getDay() === 6;
+        const isSaturdayHoliday = isSaturday && specificSaturdayHolidays.includes(i);
+        const isWeekend = isSunday || isSaturdayHoliday;
+
+        headerHtml += `<th class='${isWeekend ? 'cell-weekend' : ''}'>${i}<br><small>${dayName}</small></th>`;
+    }
+    headerHtml += '</tr></thead><tbody>';
+
+    // SORTING ALPHABETICALLY
+    const activePersonnel = personnel.filter(p => !p.archived).sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+
+    activePersonnel.forEach(p => {
+        headerHtml += `<tr><td class="name-col">${p.name}</td>`;
+        for (let i = 1; i <= daysInMonth; i++) {
+            const date = new Date(year, month, i);
+            date.setHours(12, 0, 0, 0);
+
+            const isSunday = date.getDay() === 0;
+            const isSaturday = date.getDay() === 6;
+            const isSaturdayHoliday = isSaturday && specificSaturdayHolidays.includes(i);
+            const isWeekend = isSunday || isSaturdayHoliday;
+
+            const pLeaves = leaves.filter(l => l.personnelId == p.id);
+
+            // Default Status - Using Checkmark for Geldi
+            let status = isWeekend ? 'HT' : '✓';
+            let cellClass = isWeekend ? 'cell-ht' : 'cell-x';
+
+            const leave = pLeaves.find(l => {
+                const start = new Date(l.startDate); start.setHours(0, 0, 0, 0);
+                const end = new Date(l.endDate); end.setHours(23, 59, 59, 999);
+                return date >= start && date <= end;
+            });
+
+            if (leave && !isWeekend) {
+                switch (leave.type) {
+                    case 'Raporlu': status = 'R'; cellClass = 'cell-r'; break;
+                    case 'Yıllık İzinli': status = 'Yİ'; cellClass = 'cell-i'; break;
+                    case 'Mazeretsiz Gelmedi': status = 'M'; cellClass = 'cell-r'; break;
+                    case 'Geç Gelecek': status = 'G'; cellClass = 'cell-i'; break;
+                    case 'Saatlik İzinli': status = 'S'; cellClass = 'cell-i'; break;
+                    case 'Erken Çıktı': status = 'E'; cellClass = 'cell-i'; break;
+                    case 'Doğum İzni': status = 'D'; cellClass = 'cell-i'; break;
+                    case 'Günlük İzinli': status = 'İ'; cellClass = 'cell-i'; break;
+                    default: status = 'İ'; cellClass = 'cell-i';
+                }
+            }
+
+            headerHtml += `<td class='${cellClass}'>${status}</td>`;
+        }
+        headerHtml += '</tr>';
+    });
+    headerHtml += '</tbody>';
+    table.innerHTML = headerHtml;
+
+    // Update Legend Programmatically
+    const footerLegend = document.querySelector('.modal-footer');
+    if (footerLegend) {
+        footerLegend.innerHTML = `
+            <div><span class="status-legend x">✓</span> : Geldi</div>
+            <div><span class="status-legend ht">HT</span> : Hafta Tatili</div>
+            <div><span class="status-legend r">R</span> : Raporlu</div>
+            <div><span class="status-legend i">Yİ</span> : Yıllık İzin</div>
+            <div><span class="status-legend i">İ</span> : Ücretli İzin</div>
+            <div><span class="status-legend i">G</span> : Geç Gelecek</div>
+            <div><span class="status-legend i">S</span> : Saatlik İzin</div>
+            <div><span class="status-legend i">E</span> : Erken Çıktı</div>
+            <div><span class="status-legend r">M</span> : Mazeretsiz</div>
+            <div><span class="status-legend i">D</span> : Doğum İzni</div>
+        `;
+    }
+}
+
+function openMonthlyReportModal() {
+    openModal('monthly-report-modal');
+
+    if (!document.getElementById('monthly-report-styles')) {
+        const style = document.createElement('style');
+        style.id = 'monthly-report-styles';
+        style.innerHTML = `
+            #monthly-report-month-select {
+                appearance: none;
+                background-color: #4f46e5 !important;
+                color: white !important;
+                border: none !important;
+                padding: 6px 16px !important;
+                border-radius: 6px !important;
+                cursor: pointer;
+                font-weight: 500;
+                text-align: center;
+                background-image: none !important;
+            }
+            #monthly-report-year-select { display: none; }
+            
+            .monthly-report-table td { font-weight: 600; font-size: 0.9rem; text-align: center; }
+            .monthly-report-table th { font-size: 0.85rem; }
+            
+            .cell-x { background-color: rgba(34, 197, 94, 0.1) !important; color: #4ade80 !important; font-size: 1.1rem; }
+            .cell-i { background-color: rgba(245, 158, 11, 0.15) !important; color: #fbbf24 !important; }
+            .cell-r { background-color: rgba(239, 68, 68, 0.15) !important; color: #f87171 !important; }
+            .cell-ht { background-color: #334155 !important; color: #94a3b8 !important; font-size: 0.75rem; }
+            
+            .status-legend { display: inline-block; width: 24px; text-align: center; border-radius: 4px; font-weight: bold; margin-right: 4px; }
+            .status-legend.x { color: #4ade80; }
+            .status-legend.i { color: #fbbf24; }
+            .status-legend.r { color: #f87171; }
+            .status-legend.ht { color: #94a3b8; }
+            
+            /* Custom Select Arrow Styling workaround */
+            #monthly-report-month-select:hover {
+                background-color: #4338ca !important;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    setTimeout(generateMonthlyTable, 100);
+}

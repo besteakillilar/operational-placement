@@ -471,6 +471,41 @@
         </div>
     </div>
 
+    <!-- Monthly Report Modal -->
+    <div id="monthly-report-modal" class="modal">
+        <div class="modal-content modal-wide"
+            style="max-width: 95%; height: 90vh; display: flex; flex-direction: column; padding: 0;">
+            <div class="modal-header" style="flex: 0 0 auto; padding: 20px;">
+                <h3>📅 Aylık Devam Çizelgesi</h3>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <select id="monthly-report-month-select" class="form-control" style="width: 150px;">
+                        <!-- Options populated by JS -->
+                    </select>
+                    <select id="monthly-report-year-select" class="form-control" style="width: 100px; display: none;">
+                        <!-- Options populated by JS -->
+                    </select>
+                    <button class="btn btn-primary btn-sm" onclick="generateMonthlyTable()">Göster</button>
+                    <button class="modal-close" onclick="closeModal('monthly-report-modal')">✕</button>
+                </div>
+            </div>
+            <div class="modal-body" style="flex: 1; overflow: auto; padding: 0 20px;">
+                <div class="monthly-report-container">
+                    <table class="monthly-report-table" id="monthly-report-table">
+                        <!-- Generated via JS -->
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer"
+                style="flex: 0 0 auto; padding: 15px; border-top: 1px solid var(--border); font-size: 0.8rem; color: var(--text-secondary); display: flex; gap: 20px; flex-wrap: wrap;">
+                <div><span class="status-legend x">X</span> : Geldi</div>
+                <div><span class="status-legend i">İ</span> : İzinli</div>
+                <div><span class="status-legend r">R</span> : Raporlu</div>
+                <div><span class="status-legend ht">HT</span> : Hafta Tatili</div>
+                <!-- <div><span class="status-legend rt">RT</span> : Resmi Tatil</div> -->
+            </div>
+        </div>
+    </div>
+
     <!-- Group Personnel Modal -->
     <div id="group-personnel-modal" class="modal">
         <div class="modal-content modal-lg">
@@ -553,7 +588,8 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/tr.js"></script>
     <script src="app.js"></script>
     <script>
-        // Register Service Worker
+        // Service Worker registration disabled for local file access stability
+        /*
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
@@ -561,6 +597,7 @@
                     .catch(err => console.log('Service Worker registration failed:', err));
             });
         }
+        */
     </script>
 </body>
 
