@@ -563,12 +563,20 @@ function calculateNeeded(dept) {
 function updateDashboard() {
     const today = getToday();
 
-    // Get today's leaves
-    const todayLeaves = leaves.filter(l => isDateInRange(today, l.startDate, l.endDate));
+    // Exclude archived personnel
+    const activePersonnel = personnel.filter(p => !p.archived);
+
+    // Get today's leaves for ONLY active personnel
+    const todayLeaves = leaves.filter(l => {
+        if (!isDateInRange(today, l.startDate, l.endDate)) return false;
+        // Check if the person is active
+        const person = activePersonnel.find(p => p.id === l.personnelId);
+        return !!person;
+    });
     const onLeaveIds = todayLeaves.map(l => l.personnelId);
 
     // Calculate stats
-    const totalPersonnel = personnel.length;
+    const totalPersonnel = activePersonnel.length;
     const onLeaveCount = onLeaveIds.length;
     const presentCount = totalPersonnel - onLeaveCount;
 
@@ -616,8 +624,9 @@ function renderDistribution(view, onLeaveIds) {
 }
 
 function renderDepartmentDistribution(container, onLeaveIds) {
-    const paketleme = personnel.filter(p => p.department === 'Paketleme');
-    const balon = personnel.filter(p => p.department === 'Balon Tedarik - Sevkiyat');
+    const activePersonnel = personnel.filter(p => !p.archived);
+    const paketleme = activePersonnel.filter(p => p.department === 'Paketleme');
+    const balon = activePersonnel.filter(p => p.department === 'Balon Tedarik - Sevkiyat');
 
     const paketlemeOnLeave = paketleme.filter(p => onLeaveIds.includes(p.id)).length;
     const balonOnLeave = balon.filter(p => onLeaveIds.includes(p.id)).length;
@@ -709,7 +718,8 @@ function renderTaskDistribution(container, onLeaveIds) {
         }
     });
 
-    personnel.forEach(p => {
+    const activePersonnel = personnel.filter(p => !p.archived);
+    activePersonnel.forEach(p => {
         if (p.task && taskGroups[p.task]) {
             taskGroups[p.task].personnel.push(p);
         }
@@ -777,11 +787,14 @@ function showGroupPersonnelModal(type, value) {
     let groupPersonnel = [];
     let title = '';
 
+    // Sadece aktif personelleri filtrele
+    const activePersonnel = personnel.filter(p => !p.archived);
+
     if (type === 'department') {
-        groupPersonnel = personnel.filter(p => p.department === value);
+        groupPersonnel = activePersonnel.filter(p => p.department === value);
         title = value;
     } else if (type === 'task') {
-        groupPersonnel = personnel.filter(p => p.task === value);
+        groupPersonnel = activePersonnel.filter(p => p.task === value);
         title = value;
     }
 
@@ -1277,7 +1290,9 @@ function updatePersonnelStats() {
     const onLeaveIds = leaves
         .filter(l => isDateInRange(today, l.startDate, l.endDate))
         .map(l => l.personnelId);
-    const leaveCount = personnel.filter(p => onLeaveIds.includes(p.id)).length;
+
+    // Sadece aktif personeller içindeki izinlileri say
+    const leaveCount = activePersonnel.filter(p => onLeaveIds.includes(p.id)).length;
 
     // Update stat cards
     const totalEl = document.getElementById('personnel-stat-total');
