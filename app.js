@@ -242,9 +242,23 @@ function getToday() {
     return new Date().toISOString().split('T')[0];
 }
 
-function getDaysDifference(start, end) {
+function getDaysDifference(start, end, type = '') {
     const startDate = new Date(start);
     const endDate = new Date(end);
+
+    // Yıllık İzin ise Pazarları sayma
+    if (type === 'Yıllık İzinli' || type === 'Yıllık İzin') {
+        let count = 0;
+        let currentDate = new Date(startDate);
+        while (currentDate <= endDate) {
+            if (currentDate.getDay() !== 0) { // 0 is Sunday
+                count++;
+            }
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+        return count;
+    }
+
     const diffTime = Math.abs(endDate - startDate);
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
 }
@@ -1027,7 +1041,7 @@ function showLeaveDetail(leaveId) {
         datesRow.style.display = 'flex';
         durationRow.style.display = 'flex';
         document.getElementById('leave-detail-dates').textContent = `${formatDate(leave.startDate)} - ${formatDate(leave.endDate)}`;
-        const days = getDaysDifference(leave.startDate, leave.endDate);
+        const days = getDaysDifference(leave.startDate, leave.endDate, leave.type);
         document.getElementById('leave-detail-duration').textContent = `${days} Gün`;
     }
 
@@ -1366,7 +1380,7 @@ function showPersonnelListModal(category, title) {
 
             let leaveBadge = '';
             if (isOnLeave) {
-                const days = getDaysDifference(activeLeave.startDate, activeLeave.endDate);
+                const days = getDaysDifference(activeLeave.startDate, activeLeave.endDate, activeLeave.type);
                 const isMaternity = activeLeave.type === 'Doğum İzni';
                 const leaveText = isMaternity ? 'Doğum İzni' : `${activeLeave.type} (${days} gün)`;
                 leaveBadge = `<span class="leave-badge-mini" title="${formatDate(activeLeave.startDate)} - ${formatDate(activeLeave.endDate)}">${leaveText}</span>`;
@@ -1978,7 +1992,7 @@ function renderLeaveTable() {
     }
 
     tbody.innerHTML = filtered.map(l => {
-        const days = getDaysDifference(l.startDate, l.endDate);
+        const days = getDaysDifference(l.startDate, l.endDate, l.type);
         const isActive = isDateInRange(today, l.startDate, l.endDate);
         const isPast = new Date(l.endDate) < new Date(today);
 
@@ -2158,7 +2172,7 @@ function generateReport() {
         summaryCountCard.style.display = 'flex';
     }
 
-    const totalDays = filtered.reduce((sum, l) => sum + getDaysDifference(l.startDate, l.endDate), 0);
+    const totalDays = filtered.reduce((sum, l) => sum + getDaysDifference(l.startDate, l.endDate, l.type), 0);
     const totalCount = filtered.length;
 
     document.getElementById('total-leave-days').textContent = totalDays;
@@ -2173,7 +2187,7 @@ function generateReport() {
     }
 
     tbody.innerHTML = filtered.map(l => {
-        const days = getDaysDifference(l.startDate, l.endDate);
+        const days = getDaysDifference(l.startDate, l.endDate, l.type);
         const isMaternityLeave = l.type === 'Doğum İzni';
         const startDateDisplay = isMaternityLeave ? '-' : formatDate(l.startDate);
         const endDateDisplay = isMaternityLeave ? '-' : formatDate(l.endDate);
