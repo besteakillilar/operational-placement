@@ -545,13 +545,23 @@ const defaultTargets = {
         'Elle Paketleme': 10, 'Numune': 2, 'Kalite Kontrol': 2, 'Yedek': 3
     },
     'Balon': {
-        'Stok': 2, 'Sevkiyat': 3, 'Tedarik': 2, 'Dolum': 2, 'Hazırlık': 2
+        'Stok / Sevkiyat / Tedarik': 2, 'Sevkiyat Hazırlık': 3, 'Tedarik': 2, 'Dolum': 2
     }
 };
 
 function getTargetSettings() {
     const stored = localStorage.getItem('targetSettings');
-    return stored ? JSON.parse(stored) : defaultTargets;
+    if (!stored) return defaultTargets;
+
+    let settings = JSON.parse(stored);
+
+    // MIGRATION: Old 'Hazırlık' key detected -> Reset Balon to new defaults
+    if (settings['Balon'] && settings['Balon']['Hazırlık'] !== undefined) {
+        settings['Balon'] = JSON.parse(JSON.stringify(defaultTargets['Balon']));
+        localStorage.setItem('targetSettings', JSON.stringify(settings));
+    }
+
+    return settings;
 }
 
 function saveTargetSettings(settings) {
@@ -890,6 +900,7 @@ function showNeededPersonnelModal(dept) {
     if (modalHeader) modalHeader.textContent = modalTitle;
 
     document.getElementById('needed-current').textContent = totalCurrent;
+    document.getElementById('needed-current-label').textContent = dept === 'Paketleme' ? 'Toplam Paketleme' : 'Toplam Balon Tedarik';
     document.getElementById('needed-result').textContent = needed;
 
     const targetValEl = document.querySelector('.needed-stat.target .needed-value');
@@ -1258,12 +1269,30 @@ function clearLeaveFilters() {
 }
 
 function clearReportFilters() {
-    document.getElementById('report-personnel').value = '';
-    document.getElementById('report-year').value = new Date().getFullYear().toString();
-    document.getElementById('report-type').value = '';
+    // Reset Personnel (Searchable Dropdown)
+    const personnelInput = document.getElementById('report-personnel');
+    if (personnelInput) personnelInput.value = '';
+
+    const dropdownContainer = document.getElementById('report-personnel-container');
+    if (dropdownContainer) {
+        const textData = dropdownContainer.querySelector('.dropdown-text');
+        if (textData) textData.textContent = 'Tüm Personeller';
+    }
+
+    // Reset Month and Type
+    const monthSelect = document.getElementById('report-month');
+    if (monthSelect) monthSelect.value = '';
+
+    const typeSelect = document.getElementById('report-type');
+    if (typeSelect) typeSelect.value = '';
+
     // Hide summary and clear table
-    document.getElementById('report-summary').style.display = 'none';
-    document.getElementById('report-table-body').innerHTML = '';
+    const summary = document.getElementById('report-summary');
+    if (summary) summary.style.display = 'none';
+
+    const tbody = document.getElementById('report-table-body');
+    if (tbody) tbody.innerHTML = '';
+
     showToast('Filtreler temizlendi', 'success');
 }
 
@@ -3011,7 +3040,7 @@ function generateMonthlyTable() {
             <div><span class="status-legend ht">HT</span> : Hafta Tatili</div>
             <div><span class="status-legend r">R</span> : Raporlu</div>
             <div><span class="status-legend i">Yİ</span> : Yıllık İzin</div>
-            <div><span class="status-legend i">İ</span> : Ücretli İzin</div>
+            <div><span class="status-legend i">İ</span> : Günlük İzinli</div>
             <div><span class="status-legend i">G</span> : Geç Gelecek</div>
             <div><span class="status-legend i">S</span> : Saatlik İzin</div>
             <div><span class="status-legend i">E</span> : Erken Çıktı</div>
