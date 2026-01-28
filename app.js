@@ -976,6 +976,21 @@ function showNeededPersonnelModal(dept) {
     openModal('needed-personnel-modal');
 }
 
+// Helper function to get CSS class for leave types
+function getLeaveTypeClass(type) {
+    if (!type) return '';
+    const typeLower = type.toLowerCase();
+    if (typeLower.includes('yıllık') || typeLower.includes('yillik')) return 'leave-annual';
+    if (typeLower.includes('günlük') || typeLower.includes('gunluk')) return 'leave-daily';
+    if (typeLower.includes('saatlik')) return 'leave-hourly';
+    if (typeLower.includes('doğum') || typeLower.includes('dogum')) return 'leave-maternity';
+    if (typeLower.includes('rapor')) return 'leave-medical';
+    if (typeLower.includes('geç') || typeLower.includes('gec')) return 'leave-late';
+    if (typeLower.includes('erken')) return 'leave-early';
+    if (typeLower.includes('mazeret')) return 'leave-absent';
+    return 'leave-default';
+}
+
 function renderTodayLeaves(todayLeaves) {
     const container = document.getElementById('today-leave-list');
     document.getElementById('leave-count-badge').textContent = `${todayLeaves.length} Kişi`;
@@ -1003,7 +1018,7 @@ function renderTodayLeaves(todayLeaves) {
                     <div class="leave-details">${leave.department || '-'} • ${dateDisplay}</div>
                 </div>
                 <div class="leave-actions">
-                    <span class="leave-type-badge">${leave.type}</span>
+                    <span class="leave-type-badge ${getLeaveTypeClass(leave.type)}">${leave.type}</span>
                     <div class="view-icon-inline">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
@@ -1039,7 +1054,11 @@ function showLeaveDetail(leaveId) {
         document.getElementById('leave-detail-department').textContent = deptText;
     }
 
-    document.getElementById('leave-detail-type').textContent = leave.type;
+    const typeEl = document.getElementById('leave-detail-type');
+    typeEl.textContent = leave.type;
+    // Reset classes and add new one
+    typeEl.className = 'leave-detail-value leave-type-badge';
+    typeEl.classList.add(getLeaveTypeClass(leave.type));
 
     // Tarih ve süre bilgileri
     const datesRow = document.getElementById('leave-detail-dates-row');
@@ -1412,7 +1431,7 @@ function showPersonnelListModal(category, title) {
                 const days = getDaysDifference(activeLeave.startDate, activeLeave.endDate, activeLeave.type);
                 const isMaternity = activeLeave.type === 'Doğum İzni';
                 const leaveText = isMaternity ? 'Doğum İzni' : `${activeLeave.type} (${days} gün)`;
-                leaveBadge = `<span class="leave-badge-mini" title="${formatDate(activeLeave.startDate)} - ${formatDate(activeLeave.endDate)}">${leaveText}</span>`;
+                leaveBadge = `<span class="leave-badge-mini ${getLeaveTypeClass(activeLeave.type)}" title="${formatDate(activeLeave.startDate)} - ${formatDate(activeLeave.endDate)}">${leaveText}</span>`;
             }
 
             listHtml += `
@@ -2040,7 +2059,7 @@ function renderLeaveTable() {
             <tr>
                 <td><strong>${l.personnelName || 'Bilinmiyor'}</strong></td>
                 <td>${l.department || '-'}</td>
-                <td>${l.type}</td>
+                <td><span class="leave-type-badge ${getLeaveTypeClass(l.type)}">${l.type}</span></td>
                 <td>${startDateDisplay}</td>
                 <td>${endDateDisplay}</td>
                 <td>${daysDisplay}</td>
