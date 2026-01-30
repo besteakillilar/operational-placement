@@ -949,6 +949,8 @@ body {
     font-weight: 500;
     background: rgba(245, 158, 11, 0.15);
     color: var(--warning);
+    white-space: nowrap;
+    display: inline-block;
 }
 
 .leave-type-badge.leave-annual,
@@ -4294,4 +4296,6 @@ tr:hover td {
         .status-legend.ht {
             background-color: #334155 !important;
             color: #94a3b8 !important;
-        }}
+        }
+    }
+}

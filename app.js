@@ -2371,7 +2371,13 @@ function renderDashboardPage() {
                     <span class="stat-label">Aktif Çalışan Personel</span>
                 </div>
             </div>
-            <div class="stat-card stat-leave">
+            <div class="stat-card stat-leave" style="position: relative; cursor: pointer;" onclick="showPersonnelListModal('leave', 'İzinli Personel')">
+                <div class="view-icon-corner">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                </div>
                 <div class="stat-icon">📅</div>
                 <div class="stat-content">
                     <span class="stat-value" id="on-leave-personnel">0</span>
