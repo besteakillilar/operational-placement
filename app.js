@@ -251,7 +251,13 @@ function getDaysDifference(start, end, type = '') {
         let count = 0;
         let currentDate = new Date(startDate);
         while (currentDate <= endDate) {
-            if (currentDate.getDay() !== 0) { // 0 is Sunday
+            const isSunday = currentDate.getDay() === 0;
+            // 14.02.2026 and 28.02.2026 specific holidays
+            const isFebHoliday = currentDate.getFullYear() === 2026 &&
+                currentDate.getMonth() === 1 &&
+                [14, 28].includes(currentDate.getDate());
+
+            if (!isSunday && !isFebHoliday) {
                 count++;
             }
             currentDate.setDate(currentDate.getDate() + 1);
@@ -2994,7 +3000,7 @@ function generateMonthlyTable() {
     if (!table) return;
 
     const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const specificSaturdayHolidays = [10, 24];
+    const specificSaturdayHolidays = [14, 28];
 
     let headerHtml = '<thead><tr><th class="name-col">Personel</th>';
     for (let i = 1; i <= daysInMonth; i++) {
