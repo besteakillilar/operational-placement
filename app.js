@@ -1906,8 +1906,6 @@ function initLeaveForm() {
         }
     });
 
-    document.getElementById('leave-filter').addEventListener('change', renderLeaveTable);
-
     // Edit form
     initEditLeaveForm();
 }
@@ -2719,6 +2717,13 @@ function renderLeavePage() {
         `;
 
     updateLeaveStats();
+
+    // İzin filtresine event listener ekle
+    const leaveFilter = document.getElementById('leave-filter');
+    if (leaveFilter) {
+        leaveFilter.addEventListener('change', renderLeaveTable);
+    }
+
     renderLeaveTable();
 }
 
