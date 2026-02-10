@@ -8,6 +8,7 @@ let leaves = [];
 let departments = [];
 let tasks = [];
 let leaveTypes = [];
+let personnelNotes = [];
 let currentUser = null;
 let showArchivedPersonnel = false;
 
@@ -95,6 +96,7 @@ async function loadAllData(showOverlay = true) {
         departments = result.data.departments || [];
         tasks = result.data.tasks || [];
         leaveTypes = result.data.leaveTypes || [];
+        personnelNotes = result.data.notes || [];
 
         // DATA MIGRATION: Update old department/task names to new format
         personnel.forEach(p => {
@@ -1641,6 +1643,16 @@ function renderPersonnelTable() {
                                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                             </svg>
                         </button>
+                        <button class="btn btn-notes btn-icon-only" onclick="openNotesModal('${p.id}')" title="Notlar">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                                <line x1="16" y1="13" x2="8" y2="13"/>
+                                <line x1="16" y1="17" x2="8" y2="17"/>
+                                <line x1="10" y1="9" x2="8" y2="9"/>
+                            </svg>
+                            <span class="notes-count-badge" id="notes-count-${p.id}">${personnelNotes.filter(n => String(n.personnelId) === String(p.id)).length || ''}</span>
+                        </button>
                         ${archiveButton}
                     </div>
                 </td>
@@ -1765,6 +1777,230 @@ function confirmDeletePersonnel(id) {
     };
 
     openModal('delete-modal');
+}
+
+// ==================== PERSONNEL NOTES ====================
+function openNotesModal(personnelId) {
+    const person = personnel.find(p => p.id === personnelId);
+    if (!person) return;
+
+    // Modal başlığını güncelle
+    document.getElementById('notes-modal-title').textContent = `${person.name} - Notlar`;
+    document.getElementById('notes-modal-personnel-id').value = personnelId;
+    document.getElementById('notes-modal-new-note').value = '';
+
+    // Notları listele
+    renderNotesList(personnelId);
+
+    openModal('notes-modal');
+}
+
+function renderNotesList(personnelId) {
+    const notesContainer = document.getElementById('notes-modal-list');
+    const personNotes = personnelNotes.filter(n => String(n.personnelId) === String(personnelId));
+
+    // Badge sayısını güncelle
+    const badge = document.getElementById(`notes-count-${personnelId}`);
+    if (badge) badge.textContent = personNotes.length || '';
+
+    if (personNotes.length === 0) {
+        notesContainer.innerHTML = `
+            <div class="notes-empty">
+                <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                </svg>
+                <p>Henüz not eklenmemiş</p>
+            </div>
+        `;
+        return;
+    }
+
+    // Tarihe göre sırala (en yeni üste)
+    const sorted = [...personNotes].sort((a, b) => {
+        const dateA = a.updatedAt || a.createdAt || '';
+        const dateB = b.updatedAt || b.createdAt || '';
+        return dateB.localeCompare(dateA);
+    });
+
+    notesContainer.innerHTML = sorted.map((note, index) => {
+        const noteNum = personNotes.length - index;
+        const isEdited = note.updatedAt && note.createdAt && note.updatedAt !== note.createdAt;
+        const dateDisplay = isEdited
+            ? `<span class="note-date-edited">düzenlendi</span> ${note.updatedAt}`
+            : note.createdAt;
+
+        return `
+        <div class="note-item" id="note-item-${note.id}">
+            <div class="note-number">${noteNum}</div>
+            <div class="note-content">
+                <div class="note-text" id="note-text-${note.id}">${note.text}</div>
+                <div class="note-meta">
+                    <span class="note-date" title="Oluşturulma: ${note.createdAt}${isEdited ? ' | Son düzenleme: ' + note.updatedAt : ''}">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                        ${dateDisplay}
+                    </span>
+                </div>
+            </div>
+            <div class="note-actions">
+                <button class="btn-note-action btn-note-edit" onclick="editNote('${note.id}')" title="Düzenle">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                </button>
+                <button class="btn-note-action btn-note-delete" onclick="deletePersonnelNote('${note.id}', '${note.personnelId}')" title="Sil">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"/>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    `}).join('');
+}
+
+async function addPersonnelNote() {
+    const personnelId = document.getElementById('notes-modal-personnel-id').value;
+    const textInput = document.getElementById('notes-modal-new-note');
+    const text = textInput.value.trim();
+
+    if (!text) {
+        showToast('Not içeriği boş olamaz', 'error');
+        return;
+    }
+
+    const person = personnel.find(p => p.id === personnelId);
+    const now = new Date();
+    const formattedDate = now.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(' ', ' ');
+
+    // Optimistic UI
+    const tempId = 'temp-note-' + Date.now();
+    const tempNote = {
+        id: tempId,
+        personnelId,
+        personnelName: person ? person.name : '?',
+        department: person ? person.department : '?',
+        text,
+        createdAt: formattedDate,
+        updatedAt: formattedDate
+    };
+
+    personnelNotes.push(tempNote);
+    textInput.value = '';
+    renderNotesList(personnelId);
+    showToast('Not eklendi');
+
+    // Background sync
+    try {
+        const result = await apiPost('addNote', { personnelId, text });
+        const index = personnelNotes.findIndex(n => n.id === tempId);
+        if (index !== -1 && result.data) {
+            personnelNotes[index] = result.data;
+        }
+        renderNotesList(personnelId);
+    } catch (error) {
+        console.error('Note add error:', error);
+        showToast('Not eklenemedi!', 'error');
+        personnelNotes = personnelNotes.filter(n => n.id !== tempId);
+        renderNotesList(personnelId);
+    }
+}
+
+function editNote(noteId) {
+    const noteItem = document.getElementById(`note-item-${noteId}`);
+    const noteTextEl = document.getElementById(`note-text-${noteId}`);
+    if (!noteItem || !noteTextEl) return;
+
+    const note = personnelNotes.find(n => n.id === noteId);
+    if (!note) return;
+
+    const currentText = note.text;
+
+    noteTextEl.innerHTML = `
+        <textarea class="note-edit-textarea" id="note-edit-input-${noteId}" rows="3">${currentText}</textarea>
+        <div class="note-edit-actions">
+            <button class="btn btn-primary btn-sm" onclick="saveEditNote('${noteId}')">Kaydet</button>
+            <button class="btn btn-secondary btn-sm" onclick="renderNotesList('${note.personnelId}')">Vazgeç</button>
+        </div>
+    `;
+
+    const textarea = document.getElementById(`note-edit-input-${noteId}`);
+    if (textarea) {
+        textarea.focus();
+        textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+    }
+}
+
+async function saveEditNote(noteId) {
+    const textarea = document.getElementById(`note-edit-input-${noteId}`);
+    if (!textarea) return;
+
+    const newText = textarea.value.trim();
+    if (!newText) {
+        showToast('Not içeriği boş olamaz', 'error');
+        return;
+    }
+
+    const note = personnelNotes.find(n => n.id === noteId);
+    if (!note) return;
+
+    const originalText = note.text;
+    if (originalText === newText) {
+        renderNotesList(note.personnelId);
+        return;
+    }
+
+    // Optimistic UI
+    const now = new Date();
+    const formattedDate = now.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(' ', ' ');
+    note.text = newText;
+    note.updatedAt = formattedDate;
+    renderNotesList(note.personnelId);
+    showToast('Not güncellendi');
+
+    // Background sync
+    try {
+        const result = await apiPost('updateNote', { id: noteId, text: newText });
+        if (result.data && result.data.updatedAt) {
+            note.updatedAt = result.data.updatedAt;
+            renderNotesList(note.personnelId);
+        }
+    } catch (error) {
+        console.error('Note update error:', error);
+        showToast('Not güncellenemedi!', 'error');
+        note.text = originalText;
+        renderNotesList(note.personnelId);
+    }
+}
+
+async function deletePersonnelNote(noteId, personnelId) {
+    if (!confirm('Bu notu silmek istediğinize emin misiniz?')) return;
+
+    const noteIndex = personnelNotes.findIndex(n => n.id === noteId);
+    if (noteIndex === -1) return;
+
+    const backup = { ...personnelNotes[noteIndex] };
+
+    // Optimistic UI
+    personnelNotes.splice(noteIndex, 1);
+    renderNotesList(personnelId);
+    showToast('Not silindi', 'warning');
+
+    // Background sync
+    try {
+        await apiPost('deleteNote', null, noteId);
+    } catch (error) {
+        console.error('Note delete error:', error);
+        showToast('Not silinemedi!', 'error');
+        personnelNotes.splice(noteIndex, 0, backup);
+        renderNotesList(personnelId);
+    }
 }
 
 // ==================== LEAVE MANAGEMENT ====================

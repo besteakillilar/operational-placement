@@ -402,6 +402,51 @@
         </div>
     </div>
 
+    <!-- Personnel Notes Modal -->
+    <div id="notes-modal" class="modal">
+        <div class="modal-content modal-lg notes-modal-content">
+            <div class="modal-header">
+                <h3 id="notes-modal-title">Personel Notları</h3>
+                <button class="modal-close" onclick="closeModal('notes-modal')">✕</button>
+            </div>
+            <input type="hidden" id="notes-modal-personnel-id">
+
+            <!-- Add New Note -->
+            <div class="notes-add-section">
+                <div class="notes-add-wrapper">
+                    <div class="notes-add-input-group">
+                        <label>Yeni Not</label>
+                        <textarea id="notes-modal-new-note" placeholder="Notunuzu buraya yazın..." rows="2"></textarea>
+                    </div>
+                    <button class="btn btn-primary btn-add-note" onclick="addPersonnelNote()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19" />
+                            <line x1="5" y1="12" x2="19" y2="12" />
+                        </svg>
+                        <span>Ekle</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Notes Summary -->
+            <div class="notes-summary-bar" id="notes-summary-bar">
+                <span class="notes-summary-count">
+                    Toplam <span class="count-num" id="notes-total-count">0</span> not
+                </span>
+            </div>
+
+            <!-- Notes List -->
+            <div class="notes-list-container" id="notes-modal-list">
+                <!-- Dynamic content will be inserted here -->
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="closeModal('notes-modal')">Kapat</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Leave Detail Modal -->
     <div id="leave-detail-modal" class="modal">
         <div class="modal-content modal-lg leave-detail-modal">

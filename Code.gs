@@ -10,7 +10,8 @@ const SHEETS = {
   DEPARTMENTS: 'Departmanlar',
   TASKS: 'Gorevler',
   LEAVE_TYPES: 'IzinTurleri',
-  USERS: 'Kullanicilar'
+  USERS: 'Kullanicilar',
+  NOTES: 'Notlar'
 };
 
 // CORS için gerekli
@@ -84,6 +85,20 @@ function handleRequest(e) {
         result = deleteLeave(e.parameter.id);
         break;
       
+      // NOT İŞLEMLERİ
+      case 'getNotes':
+        result = getNotes(e.parameter.personnelId);
+        break;
+      case 'addNote':
+        result = addNote(JSON.parse(e.parameter.data));
+        break;
+      case 'updateNote':
+        result = updateNote(JSON.parse(e.parameter.data));
+        break;
+      case 'deleteNote':
+        result = deleteNote(e.parameter.id);
+        break;
+      
       default:
         result = { success: false, error: 'Geçersiz işlem: ' + action };
     }
@@ -142,6 +157,8 @@ function getSheetData(sheetName) {
       sheet.appendRow(['Doğum İzni']);
       sheet.appendRow(['Raporlu']);
       sheet.appendRow(['Erken Çıktı']);
+    } else if (sheetName === SHEETS.NOTES) {
+      sheet.appendRow(['ID', 'Personel ID', 'Personel Adı', 'Departman', 'Not', 'Oluşturma Tarihi', 'Güncellenme Tarihi']);
     }
   }
   
@@ -222,7 +239,8 @@ function getAllData() {
       leaves: getLeaves().data,
       departments: getDepartments().data,
       tasks: getTasks().data,
-      leaveTypes: getLeaveTypes().data
+      leaveTypes: getLeaveTypes().data,
+      notes: getAllNotes().data
     }
   };
 }
@@ -545,6 +563,158 @@ function deleteLeavesByPersonnelId(personnelId) {
       sheet.deleteRow(i + 1);
     }
   }
+  
+  // Personele ait notları da sil
+  deleteNotesByPersonnelId(personnelId);
+}
+
+// ==================== NOT İŞLEMLERİ ====================
+
+function getAllNotes() {
+  const data = getSheetData(SHEETS.NOTES);
+  if (data.length <= 1) return { success: true, data: [] };
+  
+  const notes = data.slice(1).map(row => ({
+    id: row[0],
+    personnelId: row[1],
+    personnelName: row[2],
+    department: row[3],
+    text: row[4] || '',
+    createdAt: row[5] ? Utilities.formatDate(new Date(row[5]), 'Europe/Istanbul', 'dd.MM.yyyy HH:mm') : '',
+    updatedAt: row[6] ? Utilities.formatDate(new Date(row[6]), 'Europe/Istanbul', 'dd.MM.yyyy HH:mm') : ''
+  })).filter(n => n.id);
+  
+  return { success: true, data: notes };
+}
+
+function getNotes(personnelId) {
+  const allNotes = getAllNotes();
+  if (!personnelId) return allNotes;
+  
+  const searchId = String(personnelId);
+  const filtered = allNotes.data.filter(n => String(n.personnelId) === searchId);
+  return { success: true, data: filtered };
+}
+
+function addNote(data) {
+  const ss = getSpreadsheet();
+  let sheet = ss.getSheetByName(SHEETS.NOTES);
+  
+  if (!sheet) {
+    getSheetData(SHEETS.NOTES);
+    sheet = ss.getSheetByName(SHEETS.NOTES);
+  }
+  
+  if (!data || !data.personnelId || !data.text || !data.text.trim()) {
+    return { success: false, error: 'Not içeriği boş olamaz' };
+  }
+  
+  const id = getNextId(SHEETS.NOTES, 'N-');
+  const now = new Date();
+  
+  // Personel bilgisini al
+  const personnelResult = getPersonnel();
+  const searchId = String(data.personnelId);
+  const person = personnelResult.data.find(p => String(p.id) === searchId);
+  
+  const personnelName = person ? person.name : 'Bilinmeyen';
+  const department = person ? person.department : '';
+  
+  sheet.appendRow([
+    id,
+    data.personnelId,
+    personnelName,
+    department,
+    data.text.trim(),
+    now,
+    now
+  ]);
+  
+  return {
+    success: true,
+    message: 'Not eklendi',
+    data: {
+      id,
+      personnelId: data.personnelId,
+      personnelName,
+      department,
+      text: data.text.trim(),
+      createdAt: Utilities.formatDate(now, 'Europe/Istanbul', 'dd.MM.yyyy HH:mm'),
+      updatedAt: Utilities.formatDate(now, 'Europe/Istanbul', 'dd.MM.yyyy HH:mm')
+    }
+  };
+}
+
+function updateNote(data) {
+  const ss = getSpreadsheet();
+  const sheet = ss.getSheetByName(SHEETS.NOTES);
+  
+  if (!sheet) return { success: false, error: 'Sheet bulunamadı' };
+  
+  const allData = sheet.getDataRange().getValues();
+  let rowIndex = -1;
+  
+  const searchId = String(data.id);
+  for (let i = 1; i < allData.length; i++) {
+    if (String(allData[i][0]) === searchId) {
+      rowIndex = i + 1;
+      break;
+    }
+  }
+  
+  if (rowIndex === -1) return { success: false, error: 'Not bulunamadı' };
+  
+  const now = new Date();
+  sheet.getRange(rowIndex, 5).setValue(data.text.trim());
+  sheet.getRange(rowIndex, 7).setValue(now);
+  
+  return {
+    success: true,
+    message: 'Not güncellendi',
+    data: {
+      updatedAt: Utilities.formatDate(now, 'Europe/Istanbul', 'dd.MM.yyyy HH:mm')
+    }
+  };
+}
+
+function deleteNote(id) {
+  const ss = getSpreadsheet();
+  const sheet = ss.getSheetByName(SHEETS.NOTES);
+  
+  if (!sheet) return { success: false, error: 'Sheet bulunamadı' };
+  
+  const allData = sheet.getDataRange().getValues();
+  let rowIndex = -1;
+  
+  const searchId = String(id);
+  for (let i = 1; i < allData.length; i++) {
+    if (String(allData[i][0]) === searchId) {
+      rowIndex = i + 1;
+      break;
+    }
+  }
+  
+  if (rowIndex === -1) return { success: false, error: 'Not bulunamadı' };
+  
+  sheet.deleteRow(rowIndex);
+  
+  return { success: true, message: 'Not silindi' };
+}
+
+function deleteNotesByPersonnelId(personnelId) {
+  const ss = getSpreadsheet();
+  const sheet = ss.getSheetByName(SHEETS.NOTES);
+  
+  if (!sheet) return;
+  
+  const allData = sheet.getDataRange().getValues();
+  const searchId = String(personnelId);
+  
+  for (let i = allData.length - 1; i >= 1; i--) {
+    if (String(allData[i][1]) === searchId) {
+      sheet.deleteRow(i + 1);
+    }
+  }
 }
 
 // ==================== LOGIN FONKSİYONLARI ====================
@@ -590,6 +760,7 @@ function setupSheets() {
   getSheetData(SHEETS.DEPARTMENTS);
   getSheetData(SHEETS.TASKS);
   getSheetData(SHEETS.LEAVE_TYPES);
+  getSheetData(SHEETS.NOTES);
   
   // Kullanıcılar sheet'ini oluştur
   const ss = getSpreadsheet();
