@@ -1653,6 +1653,14 @@ function renderPersonnelTable() {
                             </svg>
                             <span class="notes-count-badge" id="notes-count-${p.id}">${personnelNotes.filter(n => String(n.personnelId) === String(p.id)).length || ''}</span>
                         </button>
+                        <button class="btn btn-leave-history btn-icon-only" onclick="openLeaveHistoryModal('${p.id}')" title="İzin Geçmişi">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="16" y1="2" x2="16" y2="6"/>
+                                <line x1="8" y1="2" x2="8" y2="6"/>
+                                <line x1="3" y1="10" x2="21" y2="10"/>
+                            </svg>
+                        </button>
                         ${archiveButton}
                     </div>
                 </td>
@@ -2003,6 +2011,122 @@ async function deletePersonnelNote(noteId, personnelId) {
     }
 }
 
+// ==================== LEAVE HISTORY MODAL ====================
+function openLeaveHistoryModal(personnelId) {
+    const person = personnel.find(p => p.id === personnelId);
+    if (!person) return;
+
+    const today = getToday();
+
+    // Get all leaves for this person
+    const personLeaves = leaves.filter(l => l.personnelId === personnelId);
+
+    // Sort: active first, then future, then past (most recent first)
+    const sorted = [...personLeaves].sort((a, b) => {
+        const aActive = isDateInRange(today, a.startDate, a.endDate);
+        const bActive = isDateInRange(today, b.startDate, b.endDate);
+        const aFuture = new Date(a.startDate) > new Date(today);
+        const bFuture = new Date(b.startDate) > new Date(today);
+
+        if (aActive && !bActive) return -1;
+        if (!aActive && bActive) return 1;
+        if (aFuture && !bFuture) return -1;
+        if (!aFuture && bFuture) return 1;
+        return new Date(b.startDate) - new Date(a.startDate);
+    });
+
+    // Stats
+    const activeLeaves = personLeaves.filter(l => isDateInRange(today, l.startDate, l.endDate));
+    const pastLeaves = personLeaves.filter(l => new Date(l.endDate) < new Date(today));
+    const futureLeaves = personLeaves.filter(l => new Date(l.startDate) > new Date(today));
+    const totalDays = personLeaves.reduce((sum, l) => {
+        if (l.type === 'Doğum İzni') return sum;
+        return sum + getDaysDifference(l.startDate, l.endDate, l.type);
+    }, 0);
+
+    // Update modal header
+    document.getElementById('leave-history-modal-title').textContent = `${person.name} - İzin Geçmişi`;
+    document.getElementById('leave-history-modal-count').textContent = `${personLeaves.length} kayıt`;
+
+    // Update stats
+    document.getElementById('leave-history-stat-total').textContent = personLeaves.length;
+    document.getElementById('leave-history-stat-days').textContent = totalDays;
+    document.getElementById('leave-history-stat-active').textContent = activeLeaves.length;
+
+    // Render leave list
+    const listContainer = document.getElementById('leave-history-list');
+
+    if (sorted.length === 0) {
+        listContainer.innerHTML = `
+            <div class="leave-history-empty">
+                <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                    <line x1="16" y1="2" x2="16" y2="6"/>
+                    <line x1="8" y1="2" x2="8" y2="6"/>
+                    <line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+                <p>Henüz izin kaydı bulunmuyor</p>
+            </div>
+        `;
+        openModal('leave-history-modal');
+        return;
+    }
+
+    listContainer.innerHTML = sorted.map(l => {
+        const isActive = isDateInRange(today, l.startDate, l.endDate);
+        const isPast = new Date(l.endDate) < new Date(today);
+        const isFuture = new Date(l.startDate) > new Date(today);
+        const isMaternity = l.type === 'Doğum İzni';
+
+        const days = isMaternity ? '-' : getDaysDifference(l.startDate, l.endDate, l.type);
+        const daysText = isMaternity ? 'Süresiz' : `${days} gün`;
+
+        let statusClass = 'future';
+        let statusText = 'Beklemede';
+        let statusIcon = '⏳';
+        if (isActive) { statusClass = 'active'; statusText = 'Aktif'; statusIcon = '🟢'; }
+        else if (isPast) { statusClass = 'past'; statusText = 'Tamamlandı'; statusIcon = '✅'; }
+
+        const leaveTypeClass = getLeaveTypeClass(l.type);
+
+        const startDisplay = isMaternity ? '-' : formatDate(l.startDate);
+        const endDisplay = isMaternity ? '-' : formatDate(l.endDate);
+
+        return `
+            <div class="leave-history-item ${statusClass}">
+                <div class="leave-history-status-indicator ${statusClass}"></div>
+                <div class="leave-history-item-content">
+                    <div class="leave-history-item-top">
+                        <span class="leave-type-badge ${leaveTypeClass}">${l.type}</span>
+                        <span class="leave-history-status ${statusClass}">${statusIcon} ${statusText}</span>
+                    </div>
+                    <div class="leave-history-item-details">
+                        <div class="leave-history-detail">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="16" y1="2" x2="16" y2="6"/>
+                                <line x1="8" y1="2" x2="8" y2="6"/>
+                                <line x1="3" y1="10" x2="21" y2="10"/>
+                            </svg>
+                            <span>${startDisplay} → ${endDisplay}</span>
+                        </div>
+                        <div class="leave-history-detail">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <polyline points="12 6 12 12 16 14"/>
+                            </svg>
+                            <span>${daysText}</span>
+                        </div>
+                    </div>
+                    ${l.note ? `<div class="leave-history-note"><span class="leave-history-note-label">Not:</span> ${l.note}</div>` : ''}
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    openModal('leave-history-modal');
+}
+
 // ==================== LEAVE MANAGEMENT ====================
 function initLeaveForm() {
     const form = document.getElementById('leave-form');
@@ -2275,7 +2399,7 @@ function renderLeaveTable() {
     filtered.sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
 
     if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted);">İzin kaydı bulunamadı</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 40px; color: var(--text-muted);">İzin kaydı bulunamadı</td></tr>`;
         return;
     }
 
@@ -2306,13 +2430,13 @@ function renderLeaveTable() {
                 <td>${l.note || '-'}</td>
                 <td>
                     <div class="action-buttons">
-                        <button class="btn btn-secondary btn-icon-only" onclick="editLeave('${l.id}')" title="Düzenle">
+                        <button class="btn btn-secondary btn-icon-only btn-edit-action" onclick="editLeave('${l.id}')" title="Düzenle">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                             </svg>
                         </button>
-                        <button class="btn btn-secondary btn-icon-only btn-danger-hover" onclick="confirmDeleteLeave('${l.id}')" title="Sil">
+                        <button class="btn btn-secondary btn-icon-only btn-delete-action" onclick="confirmDeleteLeave('${l.id}')" title="Sil">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <polyline points="3 6 5 6 21 6"/>
                                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
@@ -2784,7 +2908,7 @@ function renderPersonnelPage() {
                 </div>
                 <div class="table-container">
                     <table><thead><tr>
-                        <th>Ad Soyad</th><th>Departman</th><th>Görev</th><th>İşlemler</th>
+                        <th>Ad Soyad</th><th>Departman</th><th>Görev</th><th style="text-align: center;">İşlemler</th>
                     </tr></thead><tbody id="personnel-table-body"></tbody></table>
                 </div>
             </div>
@@ -2944,8 +3068,8 @@ function renderLeavePage() {
                     </div>
                 </div>
                 <div class="table-container">
-                    <table><thead><tr>
-                        <th>Personel</th><th>Departman</th><th>İzin Türü</th><th>Başlangıç</th><th>Bitiş</th><th>Gün</th><th>Açıklama</th><th>İşlemler</th>
+                    <table class="leave-table-fixed"><thead><tr>
+                        <th style="width: 15%">Personel</th><th style="width: 12%">Departman</th><th style="width: 14%">İzin Türü</th><th style="width: 11%">Başlangıç</th><th style="width: 11%">Bitiş</th><th style="width: 7%">Gün</th><th style="width: 18%">Açıklama</th><th style="width: 12%; text-align: center;">İşlemler</th>
                     </tr></thead><tbody id="leave-table-body"></tbody></table>
                 </div>
             </div>
@@ -2966,11 +3090,22 @@ function renderLeavePage() {
 // ==================== REPORT RENDER ====================
 function renderReportsPage() {
     document.getElementById('raporlar-page').innerHTML = `
-        <div class="page-header">
-            <h1>Devamsızlık Raporları</h1>
-            <p class="page-subtitle">Personel bazlı devamsızlık analizi</p>
+        <div class="page-header" style="max-width: 1200px; margin: 0 auto 24px auto; display: flex; justify-content: space-between; align-items: center; padding: 0 2px;">
+            <div>
+                <h1 style="margin-bottom: 6px;">Devamsızlık Raporları</h1>
+                <p class="page-subtitle" style="margin-bottom: 0;">Personel bazlı devamsızlık analizi</p>
+            </div>
+            <button class="btn btn-primary" onclick="openMonthlyReportModal()" style="display: flex; align-items: center; gap: 8px; margin-bottom: 2px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                    <line x1="16" y1="2" x2="16" y2="6"/>
+                    <line x1="8" y1="2" x2="8" y2="6"/>
+                    <line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+                <span>Aylık Çizelge</span>
+            </button>
         </div>
-            <div class="report-container">
+            <div class="report-container" style="max-width: 1200px; margin: 0 auto;">
                 <div class="report-filters">
                     <div class="filter-group" style="flex: 2; min-width: 250px;">
                         <label>Personel Seçin</label>
@@ -2991,7 +3126,6 @@ function renderReportsPage() {
                         <select id="report-type"></select>
                     </div>
                     <button id="generate-report" class="btn btn-primary">📊 Rapor Oluştur</button>
-                    <button class="btn btn-secondary" onclick="openMonthlyReportModal()">📅 Aylık Çizelge</button>
                     <button type="button" class="btn btn-secondary btn-clear-filter" onclick="clearReportFilters()" title="Filtreleri Temizle">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <line x1="18" y1="6" x2="6" y2="18" />
@@ -3231,8 +3365,12 @@ function generateMonthlyTable() {
     // Ensure year exists if in DOM
     if (yearSelect && yearSelect.children.length === 0) {
         const currentYear = new Date().getFullYear();
-        yearSelect.innerHTML = `<option value='${currentYear}'>${currentYear}</option>`;
-        yearSelect.value = currentYear;
+        const years = [2024, 2025, 2026, 2027, 2028, 2029, 2030];
+        yearSelect.innerHTML = years.map(y => `<option value='${y}'>${y}</option>`).join('');
+        yearSelect.value = 2026; // Default to 2026
+
+        // Add change listener
+        yearSelect.addEventListener('change', generateMonthlyTable);
     }
 
     const month = parseInt(monthSelect.value);
@@ -3240,8 +3378,52 @@ function generateMonthlyTable() {
     const table = document.getElementById('monthly-report-table');
     if (!table) return;
 
+    // Update modal title with month and year
+    const months = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+    const modalTitle = document.querySelector('#monthly-report-modal .modal-header h3');
+    if (modalTitle) {
+        modalTitle.textContent = `📅 ${months[month]} ${year} - Aylık Devam Çizelgesi`;
+    }
+
+    // Check if selected month/year is current month/year
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    const isCurrentPeriod = (month === currentMonth && year === currentYear);
+
+    // If not current period, show "no records" message
+    if (!isCurrentPeriod) {
+        table.innerHTML = `
+            <tbody>
+                <tr>
+                    <td colspan="100" style="text-align: center; padding: 60px 20px; color: var(--text-muted); font-size: 1.1rem;">
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 16px;">
+                            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="16" y1="2" x2="16" y2="6"/>
+                                <line x1="8" y1="2" x2="8" y2="6"/>
+                                <line x1="3" y1="10" x2="21" y2="10"/>
+                            </svg>
+                            <div>
+                                <strong>${months[month]} ${year}</strong> tarihinde kayıt bulunamadı
+                            </div>
+                            <div style="font-size: 0.85rem; opacity: 0.7;">
+                                Sadece mevcut ay (${months[currentMonth]} ${currentYear}) için veri gösterilmektedir
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        `;
+        return;
+    }
+
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const specificSaturdayHolidays = [14, 28];
+
+    // Get today's date for comparison
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     let headerHtml = '<thead><tr><th class="name-col">Personel</th>';
     for (let i = 1; i <= daysInMonth; i++) {
@@ -3264,18 +3446,21 @@ function generateMonthlyTable() {
         headerHtml += `<tr><td class="name-col">${p.name}</td>`;
         for (let i = 1; i <= daysInMonth; i++) {
             const date = new Date(year, month, i);
-            date.setHours(12, 0, 0, 0);
+            date.setHours(0, 0, 0, 0);
 
             const isSunday = date.getDay() === 0;
             const isSaturday = date.getDay() === 6;
             const isSaturdayHoliday = isSaturday && specificSaturdayHolidays.includes(i);
             const isWeekend = isSunday || isSaturdayHoliday;
 
+            // Check if the date is in the future
+            const isFuture = date > today;
+
             const pLeaves = leaves.filter(l => l.personnelId == p.id);
 
             // Default Status - Using Checkmark for Geldi
-            let status = isWeekend ? 'HT' : '✓';
-            let cellClass = isWeekend ? 'cell-ht' : 'cell-x';
+            let status = isWeekend ? 'HT' : (isFuture ? '-' : '✓');
+            let cellClass = isWeekend ? 'cell-ht' : (isFuture ? 'cell-future' : 'cell-x');
 
             const leave = pLeaves.find(l => {
                 const start = new Date(l.startDate); start.setHours(0, 0, 0, 0);
@@ -3283,7 +3468,8 @@ function generateMonthlyTable() {
                 return date >= start && date <= end;
             });
 
-            if (leave && !isWeekend) {
+            // Only apply leave status if not a future date
+            if (leave && !isWeekend && !isFuture) {
                 switch (leave.type) {
                     case 'Raporlu': status = 'R'; cellClass = 'cell-r'; break;
                     case 'Yıllık İzinli': status = 'Yİ'; cellClass = 'cell-i'; break;
@@ -3341,7 +3527,18 @@ function openMonthlyReportModal() {
                 text-align: center;
                 background-image: none !important;
             }
-            #monthly-report-year-select { display: none; }
+            #monthly-report-year-select {
+                appearance: none;
+                background-color: #4f46e5 !important;
+                color: white !important;
+                border: none !important;
+                padding: 6px 16px !important;
+                border-radius: 6px !important;
+                cursor: pointer;
+                font-weight: 500;
+                text-align: center;
+                background-image: none !important;
+            }
             
             .monthly-report-table td { font-weight: 600; font-size: 0.9rem; text-align: center; }
             .monthly-report-table th { font-size: 0.85rem; }
@@ -3350,6 +3547,7 @@ function openMonthlyReportModal() {
             .cell-i { background-color: rgba(245, 158, 11, 0.15) !important; color: #fbbf24 !important; }
             .cell-r { background-color: rgba(239, 68, 68, 0.15) !important; color: #f87171 !important; }
             .cell-ht { background-color: #334155 !important; color: #94a3b8 !important; font-size: 0.75rem; }
+            .cell-future { background-color: rgba(148, 163, 184, 0.05) !important; color: #64748b !important; opacity: 0.5; }
             
             .status-legend { display: inline-block; width: 24px; text-align: center; border-radius: 4px; font-weight: bold; margin-right: 4px; }
             .status-legend.x { color: #4ade80; }

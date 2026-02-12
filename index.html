@@ -447,6 +447,47 @@
         </div>
     </div>
 
+    <!-- Leave History Modal -->
+    <div id="leave-history-modal" class="modal">
+        <div class="modal-content modal-lg leave-history-modal-content">
+            <div class="modal-header">
+                <div class="modal-title-group">
+                    <h3 id="leave-history-modal-title">İzin Geçmişi</h3>
+                    <span class="modal-count-badge" id="leave-history-modal-count">0 kayıt</span>
+                </div>
+                <button class="modal-close" onclick="closeModal('leave-history-modal')">✕</button>
+            </div>
+
+            <!-- Stats Summary -->
+            <div class="leave-history-stats">
+                <div class="leave-history-stat">
+                    <span class="leave-history-stat-icon">📋</span>
+                    <span class="leave-history-stat-value" id="leave-history-stat-total">0</span>
+                    <span class="leave-history-stat-label">Toplam İzin</span>
+                </div>
+                <div class="leave-history-stat">
+                    <span class="leave-history-stat-icon">📅</span>
+                    <span class="leave-history-stat-value" id="leave-history-stat-days">0</span>
+                    <span class="leave-history-stat-label">Toplam Gün</span>
+                </div>
+                <div class="leave-history-stat">
+                    <span class="leave-history-stat-icon">🟢</span>
+                    <span class="leave-history-stat-value" id="leave-history-stat-active">0</span>
+                    <span class="leave-history-stat-label">Aktif İzin</span>
+                </div>
+            </div>
+
+            <!-- Leave List -->
+            <div class="leave-history-list-container" id="leave-history-list">
+                <!-- Dynamic content -->
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="closeModal('leave-history-modal')">Kapat</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Leave Detail Modal -->
     <div id="leave-detail-modal" class="modal">
         <div class="modal-content modal-lg leave-detail-modal">
@@ -526,7 +567,7 @@
                     <select id="monthly-report-month-select" class="form-control" style="width: 150px;">
                         <!-- Options populated by JS -->
                     </select>
-                    <select id="monthly-report-year-select" class="form-control" style="width: 100px; display: none;">
+                    <select id="monthly-report-year-select" class="form-control" style="width: 100px;">
                         <!-- Options populated by JS -->
                     </select>
                     <button class="btn btn-primary btn-sm" onclick="generateMonthlyTable()">Göster</button>
