@@ -1291,6 +1291,7 @@ function clearPersonnelFilters() {
 
 function clearLeaveFilters() {
     document.getElementById('leave-filter').value = '';
+    leaveCurrentPage = 1;
     renderLeaveTable();
     showToast('Filtreler temizlendi', 'success');
 }
@@ -2384,6 +2385,9 @@ function initEditLeaveForm() {
     });
 }
 
+let leaveCurrentPage = 1;
+const leavePerPage = 10;
+
 function renderLeaveTable() {
     const tbody = document.getElementById('leave-table-body');
     const filter = document.getElementById('leave-filter').value;
@@ -2398,12 +2402,24 @@ function renderLeaveTable() {
 
     filtered.sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
 
-    if (filtered.length === 0) {
+    const totalItems = filtered.length;
+    const totalPages = Math.max(1, Math.ceil(totalItems / leavePerPage));
+
+    // Ensure current page is valid
+    if (leaveCurrentPage > totalPages) leaveCurrentPage = totalPages;
+    if (leaveCurrentPage < 1) leaveCurrentPage = 1;
+
+    const startIndex = (leaveCurrentPage - 1) * leavePerPage;
+    const endIndex = Math.min(startIndex + leavePerPage, totalItems);
+    const pageItems = filtered.slice(startIndex, endIndex);
+
+    if (totalItems === 0) {
         tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 40px; color: var(--text-muted);">İzin kaydı bulunamadı</td></tr>`;
+        updateLeavePagination(0, 0, 0);
         return;
     }
 
-    tbody.innerHTML = filtered.map(l => {
+    tbody.innerHTML = pageItems.map(l => {
         const days = getDaysDifference(l.startDate, l.endDate, l.type);
         const isActive = isDateInRange(today, l.startDate, l.endDate);
         const isPast = new Date(l.endDate) < new Date(today);
@@ -2447,6 +2463,41 @@ function renderLeaveTable() {
             </tr>
         `;
     }).join('');
+
+    updateLeavePagination(totalItems, totalPages, startIndex + 1, endIndex);
+}
+
+function updateLeavePagination(total, totalPages, from, to) {
+    const container = document.getElementById('leave-pagination');
+    if (!container) return;
+
+    if (total === 0) {
+        container.innerHTML = '';
+        return;
+    }
+
+    let pagesHtml = '';
+    for (let i = 1; i <= totalPages; i++) {
+        pagesHtml += `<button class="pagination-btn ${i === leaveCurrentPage ? 'active' : ''}" onclick="goToLeavePage(${i})">${i}</button>`;
+    }
+
+    container.innerHTML = `
+        <div class="pagination-info">${total} kayıttan ${from}-${to} arası gösteriliyor</div>
+        <div class="pagination-controls">
+            <button class="pagination-btn" onclick="goToLeavePage(${leaveCurrentPage - 1})" ${leaveCurrentPage <= 1 ? 'disabled' : ''}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            ${pagesHtml}
+            <button class="pagination-btn" onclick="goToLeavePage(${leaveCurrentPage + 1})" ${leaveCurrentPage >= totalPages ? 'disabled' : ''}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 6 15 12 9 18"/></svg>
+            </button>
+        </div>
+    `;
+}
+
+function goToLeavePage(page) {
+    leaveCurrentPage = page;
+    renderLeaveTable();
 }
 
 function editLeave(id) {
@@ -3054,7 +3105,7 @@ function renderLeavePage() {
                     <div class="table-actions">
                         <select id="leave-filter" class="filter-select">
                             <option value="">Tüm İzinler</option>
-                            <option value="active">Aktif İzinler</option>
+                            <option value="active" selected>Aktif İzinler</option>
                             <option value="past">Geçmiş İzinler</option>
                             <option value="future">Gelecek İzinler</option>
                         </select>
@@ -3072,6 +3123,7 @@ function renderLeavePage() {
                         <th style="width: 15%">Personel</th><th style="width: 12%">Departman</th><th style="width: 14%">İzin Türü</th><th style="width: 11%">Başlangıç</th><th style="width: 11%">Bitiş</th><th style="width: 7%">Gün</th><th style="width: 18%">Açıklama</th><th style="width: 12%; text-align: center;">İşlemler</th>
                     </tr></thead><tbody id="leave-table-body"></tbody></table>
                 </div>
+                <div id="leave-pagination" class="pagination-wrapper"></div>
             </div>
         </div>
         `;
@@ -3081,7 +3133,10 @@ function renderLeavePage() {
     // İzin filtresine event listener ekle
     const leaveFilter = document.getElementById('leave-filter');
     if (leaveFilter) {
-        leaveFilter.addEventListener('change', renderLeaveTable);
+        leaveFilter.addEventListener('change', () => {
+            leaveCurrentPage = 1;
+            renderLeaveTable();
+        });
     }
 
     renderLeaveTable();
@@ -3385,14 +3440,25 @@ function generateMonthlyTable() {
         modalTitle.textContent = `📅 ${months[month]} ${year} - Aylık Devam Çizelgesi`;
     }
 
-    // Check if selected month/year is current month/year
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
-    const isCurrentPeriod = (month === currentMonth && year === currentYear);
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const specificSaturdayHolidays = [14, 28];
 
-    // If not current period, show "no records" message
-    if (!isCurrentPeriod) {
+    // Get today's date for comparison
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Check if selected period is the current month
+    const isCurrentMonth = (month === today.getMonth() && year === today.getFullYear());
+
+    // Check if any leave records (excluding Doğum İzni) START in this specific month/year
+    const hasLeavesInMonth = leaves.some(l => {
+        if (l.type === 'Doğum İzni') return false;
+        const start = new Date(l.startDate);
+        return start.getMonth() === month && start.getFullYear() === year;
+    });
+
+    // If not current month and no leaves start in this month → show "no records"
+    if (!isCurrentMonth && !hasLeavesInMonth) {
         table.innerHTML = `
             <tbody>
                 <tr>
@@ -3407,9 +3473,6 @@ function generateMonthlyTable() {
                             <div>
                                 <strong>${months[month]} ${year}</strong> tarihinde kayıt bulunamadı
                             </div>
-                            <div style="font-size: 0.85rem; opacity: 0.7;">
-                                Sadece mevcut ay (${months[currentMonth]} ${currentYear}) için veri gösterilmektedir
-                            </div>
                         </div>
                     </td>
                 </tr>
@@ -3417,13 +3480,6 @@ function generateMonthlyTable() {
         `;
         return;
     }
-
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const specificSaturdayHolidays = [14, 28];
-
-    // Get today's date for comparison
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
 
     let headerHtml = '<thead><tr><th class="name-col">Personel</th>';
     for (let i = 1; i <= daysInMonth; i++) {
@@ -3483,12 +3539,23 @@ function generateMonthlyTable() {
                 }
             }
 
-            headerHtml += `<td class='${cellClass}'>${status}</td>`;
+            if (leave && !isWeekend && !isFuture) {
+                const noteText = (leave.note || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                const startStr = new Date(leave.startDate).toLocaleDateString('tr-TR');
+                const endStr = new Date(leave.endDate).toLocaleDateString('tr-TR');
+                headerHtml += `<td class='${cellClass} cell-clickable' onclick="showLeaveTooltip(event, '${p.name}', '${leave.type}', '${startStr}', '${endStr}', '${noteText}')">${status}</td>`;
+            } else {
+                headerHtml += `<td class='${cellClass}'>${status}</td>`;
+            }
         }
         headerHtml += '</tr>';
     });
     headerHtml += '</tbody>';
     table.innerHTML = headerHtml;
+
+    // Remove existing tooltip when table regenerates
+    const existingTooltip = document.getElementById('leave-cell-tooltip');
+    if (existingTooltip) existingTooltip.remove();
 
     // Update Legend Programmatically
     const footerLegend = document.querySelector('.modal-footer');
@@ -3508,6 +3575,62 @@ function generateMonthlyTable() {
     }
 }
 
+// Show leave tooltip on cell click
+function showLeaveTooltip(event, name, type, startDate, endDate, note) {
+    event.stopPropagation();
+
+    // Remove existing tooltip
+    const existing = document.getElementById('leave-cell-tooltip');
+    if (existing) existing.remove();
+
+    const tooltip = document.createElement('div');
+    tooltip.id = 'leave-cell-tooltip';
+    tooltip.innerHTML = `
+        <div class="leave-tooltip-header">
+            <strong>${name}</strong>
+            <span class="leave-tooltip-close" onclick="this.closest('#leave-cell-tooltip').remove()">✕</span>
+        </div>
+        <div class="leave-tooltip-row">
+            <span class="leave-tooltip-label">İzin Türü</span>
+            <span class="leave-tooltip-value">${type}</span>
+        </div>
+        <div class="leave-tooltip-row">
+            <span class="leave-tooltip-label">Tarih</span>
+            <span class="leave-tooltip-value">${startDate} - ${endDate}</span>
+        </div>
+        ${note ? `<div class="leave-tooltip-row">
+            <span class="leave-tooltip-label">Not</span>
+            <span class="leave-tooltip-value">${note}</span>
+        </div>` : ''}
+    `;
+
+    document.body.appendChild(tooltip);
+
+    // Position near clicked cell
+    const rect = event.target.getBoundingClientRect();
+    const tooltipRect = tooltip.getBoundingClientRect();
+
+    let top = rect.bottom + 8;
+    let left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+
+    // Keep within viewport
+    if (left < 10) left = 10;
+    if (left + tooltipRect.width > window.innerWidth - 10) left = window.innerWidth - tooltipRect.width - 10;
+    if (top + tooltipRect.height > window.innerHeight - 10) top = rect.top - tooltipRect.height - 8;
+
+    tooltip.style.top = `${top}px`;
+    tooltip.style.left = `${left}px`;
+
+    // Close on outside click
+    setTimeout(() => {
+        document.addEventListener('click', function closeTooltip(e) {
+            if (!tooltip.contains(e.target)) {
+                tooltip.remove();
+                document.removeEventListener('click', closeTooltip);
+            }
+        });
+    }, 10);
+}
 function openMonthlyReportModal() {
     openModal('monthly-report-modal');
 
@@ -3558,6 +3681,81 @@ function openMonthlyReportModal() {
             /* Custom Select Arrow Styling workaround */
             #monthly-report-month-select:hover {
                 background-color: #4338ca !important;
+            }
+            
+            /* Clickable Leave Cells */
+            .cell-clickable {
+                cursor: pointer !important;
+                position: relative;
+            }
+            .cell-clickable:hover {
+                outline: 2px solid rgba(255, 255, 255, 0.3);
+                outline-offset: -2px;
+                border-radius: 2px;
+            }
+            
+            /* Leave Tooltip */
+            #leave-cell-tooltip {
+                position: fixed;
+                z-index: 99999;
+                background: #1e293b;
+                border: 1px solid rgba(148, 163, 184, 0.2);
+                border-radius: 10px;
+                padding: 0;
+                min-width: 220px;
+                max-width: 300px;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+                animation: tooltipIn 0.15s ease;
+                overflow: hidden;
+            }
+            @keyframes tooltipIn {
+                from { opacity: 0; transform: translateY(-4px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            .leave-tooltip-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 10px 14px;
+                background: rgba(79, 70, 229, 0.15);
+                border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+                color: #e2e8f0;
+                font-size: 0.9rem;
+            }
+            .leave-tooltip-close {
+                cursor: pointer;
+                color: #94a3b8;
+                font-size: 0.8rem;
+                padding: 2px 4px;
+                border-radius: 4px;
+            }
+            .leave-tooltip-close:hover {
+                background: rgba(255, 255, 255, 0.1);
+                color: #e2e8f0;
+            }
+            .leave-tooltip-row {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                padding: 8px 14px;
+                gap: 12px;
+                border-bottom: 1px solid rgba(148, 163, 184, 0.07);
+            }
+            .leave-tooltip-row:last-child {
+                border-bottom: none;
+            }
+            .leave-tooltip-label {
+                color: #94a3b8;
+                font-size: 0.8rem;
+                white-space: nowrap;
+                flex-shrink: 0;
+            }
+            .leave-tooltip-value {
+                color: #e2e8f0;
+                font-size: 0.85rem;
+                font-weight: 500;
+                text-align: right;
+                word-break: break-word;
             }
         `;
         document.head.appendChild(style);
