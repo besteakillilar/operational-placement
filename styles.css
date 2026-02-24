@@ -4112,6 +4112,30 @@ tr:hover td {
     display: none !important;
 }
 
+/* Monthly Report - Personnel Name with Department/Task */
+.name-col-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    line-height: 1.2;
+}
+
+.name-col-name {
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.name-col-dept {
+    font-size: 0.7rem;
+    color: var(--primary-light);
+    font-weight: 500;
+    white-space: nowrap;
+    opacity: 0.85;
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 @media (max-width: 768px) {
     .navbar-date {
         background: rgba(255, 255, 255, 0.05);

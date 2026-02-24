@@ -3499,7 +3499,8 @@ function generateMonthlyTable() {
     const activePersonnel = personnel.filter(p => !p.archived).sort((a, b) => a.name.localeCompare(b.name, 'tr'));
 
     activePersonnel.forEach(p => {
-        headerHtml += `<tr><td class="name-col">${p.name}</td>`;
+        const subtitle = p.task || p.department || '';
+        headerHtml += `<tr><td class="name-col"><div class="name-col-inner"><span class="name-col-name">${p.name}</span>${subtitle ? `<span class="name-col-dept">${subtitle}</span>` : ''}</div></td>`;
         for (let i = 1; i <= daysInMonth; i++) {
             const date = new Date(year, month, i);
             date.setHours(0, 0, 0, 0);
